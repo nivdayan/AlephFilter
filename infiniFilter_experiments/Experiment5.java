@@ -70,7 +70,7 @@ public class Experiment5 extends InfiniFilterExperiments {
 		
 		baseline aleph_pred_res = new baseline();
 		{
-			int expansions_est = 6; //(num_cycles - num_entries_power) / 2;
+			int expansions_est = (num_cycles - num_entries_power) / 2;
 			DuplicatingChainedInfiniFilter qf = new DuplicatingChainedInfiniFilter(num_entries_power, bits_per_entry, true, expansions_est);
 			qf.set_expand_autonomously(true); 
 			qf.set_fpr_style(FalsePositiveRateExpansion.POLYNOMIAL_SHRINK);
@@ -260,7 +260,7 @@ public class Experiment5 extends InfiniFilterExperiments {
 		String timeStamp = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(Calendar.getInstance().getTime());
 
 		LocalDate ld = java.time.LocalDate.now();
-		String dir_name = "Exp1_" + bits_per_entry + "_bytes_" +  timeStamp.toString();
+		String dir_name = "Exp5_" + bits_per_entry + "_bytes_" +  timeStamp.toString();
 	    Path path = Paths.get(dir_name);
 
 		try {
