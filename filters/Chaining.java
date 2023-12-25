@@ -59,8 +59,8 @@ public class Chaining extends QuotientFilter {
 		QuotientFilter placeholder = new QuotientFilter(power_of_two_size, bitPerEntry, filter);
 		placeholder.hash_type = this.hash_type;
 		older_filters.add(placeholder);
-		placeholder.num_existing_entries = num_existing_entries;
-		num_existing_entries = 0;
+		placeholder.num_physical_entries = num_physical_entries;
+		num_physical_entries = 0;
 		power_of_two_size += sizeStyle == SizeExpansion.GEOMETRIC ? 1 : 0;
 		
 		fingerprintLength = FingerprintGrowthStrategy.get_new_fingerprint_size(original_fingerprint_size, num_expansions, -1, fprStyle);
@@ -96,12 +96,12 @@ public class Chaining extends QuotientFilter {
 		for (QuotientFilter q : older_filters) {
 			double FPR = Math.pow(2, - q.fingerprintLength);
 			sum_FPRs += FPR;
-			System.out.println(q.num_existing_entries + "\t" + q.fingerprintLength + "\t" + q.fingerprintLength + "\t" + FPR);
+			System.out.println(q.num_physical_entries + "\t" + q.fingerprintLength + "\t" + q.fingerprintLength + "\t" + FPR);
 			
 		}
 		double FPR = Math.pow(2, - fingerprintLength);
 		sum_FPRs += FPR;
-		System.out.println(num_existing_entries + "\t" + fingerprintLength + "\t" + fingerprintLength + "\t" + FPR);
+		System.out.println(num_physical_entries + "\t" + fingerprintLength + "\t" + fingerprintLength + "\t" + FPR);
 		System.out.println("sum FPRs: " + sum_FPRs);
 	}
 	

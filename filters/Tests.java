@@ -89,7 +89,7 @@ public class Tests {
 
 		check_equality(qf, result, true);
 
-		if (qf.num_existing_entries != 6) {
+		if (qf.num_physical_entries != 6) {
 			System.out.print("counter not working well");
 			System.exit(1);
 		}

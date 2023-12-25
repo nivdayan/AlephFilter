@@ -45,13 +45,18 @@ public class Client {
 		//run_tests();
 		//aleph_tests.test1();
 		
-		//aleph_tests.run_tests();
+		aleph_tests.run_tests();
+		
+		
+		System.out.println("success");
+		
+		
 		//run_tests();
 		//Tests.test12();
 		
 		//QuotientFilter new_qf = new QuotientFilter(30 + 1, 13 + 3);
 		
-		Experiment5.main(null);
+		//Experiment5.main(null);
 		
 		//Experiment2.main(null);
 		//Experiment3.main(null);

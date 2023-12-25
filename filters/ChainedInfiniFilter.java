@@ -57,6 +57,10 @@ public class ChainedInfiniFilter extends BasicInfiniFilter {
 		return false;
 	}
 	
+	public boolean is_chain_empty() {
+		return chain.size() == 0;
+	}
+	
 	long slot_mask = 0;
 	long fingerprint_mask = 0;
 	long unary_mask = 0;
@@ -68,6 +72,10 @@ public class ChainedInfiniFilter extends BasicInfiniFilter {
 
 		prep_masks(power_of_two_size, secondary_IF.power_of_two_size, secondary_IF.fingerprintLength);
 
+	}
+	
+	public BasicInfiniFilter get_secondary() {
+		return secondary_IF;
 	}
 	
 	void prep_masks(long active_IF_power_of_two, long secondary_IF_power_of_two, long secondary_FP_length) {
@@ -122,7 +130,7 @@ public class ChainedInfiniFilter extends BasicInfiniFilter {
 		print_long_in_binary( adjusted_fingerprint, 32);
 		System.out.println();*/
 
-		num_existing_entries--;
+		num_physical_entries--;
 		//secondary_IF.num_existing_entries++;
 		boolean success = secondary_IF.insert(adjusted_fingerprint, slot, false);
 		
@@ -226,7 +234,7 @@ public class ChainedInfiniFilter extends BasicInfiniFilter {
 	}
 	
 	boolean exceeding_secondary_threshold() {
-		int num_entries = secondary_IF.num_existing_entries + num_void_entries;
+		int num_entries = secondary_IF.num_physical_entries + num_void_entries;
 		long logical_slots = secondary_IF.get_logical_num_slots();
 		double secondary_fullness = num_entries / (double)logical_slots;
 		return secondary_fullness > expansion_threshold / 0.95;
@@ -302,7 +310,7 @@ public class ChainedInfiniFilter extends BasicInfiniFilter {
 		//System.out.println("deleting  " + input + "\t b " + slot_index + " \t" + get_fingerprint_str(fp_long, fingerprintLength));
 		long removed_fp = delete(fp_long, slot_index);
 		if (removed_fp > -1) {
-			num_existing_entries--;
+			num_physical_entries--;
 			return removed_fp;
 		}
 		
@@ -310,7 +318,7 @@ public class ChainedInfiniFilter extends BasicInfiniFilter {
 		fp_long = secondary_IF.gen_fingerprint(large_hash);
 		removed_fp = secondary_IF.delete(fp_long, slot_index);
 		if (removed_fp > -1) {
-			num_existing_entries--;
+			secondary_IF.num_physical_entries--;
 			return removed_fp;
 		}
 		
@@ -319,6 +327,7 @@ public class ChainedInfiniFilter extends BasicInfiniFilter {
 			fp_long = chain.get(i).gen_fingerprint(large_hash);
 			removed_fp = chain.get(i).delete(fp_long, slot_index);
 			if (removed_fp > -1) {
+				chain.get(i).num_physical_entries--;
 				return removed_fp;
 			}
 		}
@@ -383,7 +392,6 @@ public class ChainedInfiniFilter extends BasicInfiniFilter {
 	
 	
 	public void print_age_histogram() {	
-		
 		
 		super.print_age_histogram();
 		

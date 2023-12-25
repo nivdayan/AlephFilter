@@ -24,7 +24,7 @@ public class InfiniFilterExperiments {
 
 	static int bits_per_entry = 16;
 	static int num_entries_power = 12;	
-	static int num_cycles = 23; // went up to 31
+	static int num_cycles = 27; // went up to 31
 	
 	static void parse_arguments(String[] args) {
 		if (args != null) {
@@ -64,10 +64,15 @@ public class InfiniFilterExperiments {
 	public static class baseline {
 		public Map<String, ArrayList<Double>> metrics;
 		public baseline() {
+			init();
+		}
+		
+		void init() {
 			metrics = new TreeMap<String, ArrayList<Double>>();
 			metrics.put("num_entries", new ArrayList<Double>());
 			metrics.put("insertion_time", new ArrayList<Double>());
 			metrics.put("query_time", new ArrayList<Double>());
+			metrics.put("delete_time", new ArrayList<Double>());
 			metrics.put("FPR", new ArrayList<Double>());
 			metrics.put("memory", new ArrayList<Double>());
 			metrics.put("avg_run_length", new ArrayList<Double>());

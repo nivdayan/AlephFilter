@@ -1,5 +1,8 @@
 package filters;
 
+import java.util.Random;
+import java.util.TreeSet;
+
 public class aleph_tests {
 	
 	static public void insert_all_and_then_delete_all(DuplicatingChainedInfiniFilter qf, int num_entries_power) {
@@ -44,11 +47,11 @@ public class aleph_tests {
 		}
 
 		// a key inserted before any expansions 
-		Assert(qf.num_existing_entries == 0);
+		Assert(qf.num_physical_entries == 0);
 		Assert(qf.num_void_entries == 0);
 		Assert(qf.num_distinct_void_entries == 0);
 		if (qf.secondary_IF != null) {
-			Assert(qf.secondary_IF.num_existing_entries == 0);
+			Assert(qf.secondary_IF.num_physical_entries == 0);
 			Assert(qf.secondary_IF.num_void_entries == 0);
 			Assert(qf.secondary_IF.num_distinct_void_entries == 0);
 		}
@@ -91,7 +94,7 @@ public class aleph_tests {
 	public static void run_tests() {
 		//test1();
 		
-		test3();
+		//test3();
 		test4();	
 		test5();
 		test6();
@@ -106,6 +109,10 @@ public class aleph_tests {
 		test13();
 		test14();
 		test15();
+		
+		//test16();
+		
+		//test17();
 		
 		//test7();
 	}
@@ -291,6 +298,104 @@ public class aleph_tests {
 		qf.expand();
 		
 		System.out.println("success");
+	}
+	
+	// Here we're going to create a largish filter, and then perform insertions and rejuvenation operations
+	// we'll test correctness by ensuring all keys we have inserted indeed still give positives
+	static public void test17() {
+ 		int bits_per_entry = 8;
+		int num_entries_power = 3;
+		int seed = 5;  // 10
+		//int num_entries = (int)Math.pow(2, num_entries_power);
+		BasicInfiniFilter qf = new DuplicatingChainedInfiniFilter(num_entries_power, bits_per_entry, false, -1);
+		qf.expand_autonomously = true;
+		TreeSet<Integer> added = new TreeSet<Integer>();
+		Random rand = new Random(seed);
+		double num_entries_to_insert = Math.pow(2, num_entries_power + 13); // we'll expand 3-4 times
+
+		for (int i = 0; i < num_entries_to_insert; i++) {
+			int rand_num = rand.nextInt();
+			if (!added.contains(rand_num)) {
+				System.out.println("insert key " + rand_num);
+				if (rand_num == 1462809037) {
+					System.out.println();
+				}
+				boolean success = qf.insert(rand_num, false);
+				if (success) {
+					added.add(rand_num);
+					boolean found = qf.search(rand_num);
+					if (!found) {
+						System.out.println("failed on key " + rand_num);
+						qf.pretty_print();
+						System.exit(1);
+					}
+
+				}
+			}
+
+			if (i % 4 == 0 && i > Math.pow(2, num_entries_power)) {
+				int to_del = rand.nextInt();
+				if (to_del > added.first()) {
+					
+					int r = added.floor(to_del);
+					added.remove(r);
+					System.out.println("delete key " + r);
+					long removed_fp =  qf.delete(r);
+					if (removed_fp == -1) {
+						System.out.println("not deleted");
+						System.exit(1);
+					}
+				}
+			}
+
+			if (i % 2 == 0 && i > Math.pow(2, num_entries_power)) {
+				int to_rejuv = rand.nextInt();
+				if (to_rejuv > added.first()) {
+					int key = added.floor(to_rejuv);
+					//qf.pretty_print();
+					qf.pretty_print();
+					System.out.println("rejuv key " + key);
+					if (key == -1157408321) {
+						//System.out.println();
+					}
+					boolean rejuved = qf.rejuvenate(key);
+					//qf.pretty_print();
+					if (!rejuved) {
+						System.out.println("not rejuvenated " + key);
+						qf.pretty_print();
+						qf.rejuvenate(key);
+						
+						System.exit(1);
+					}
+					boolean found = qf.search(key);
+					if (!found) {
+						System.out.println("failed to find key after rejuvenation  " + key);
+						qf.pretty_print();
+						System.exit(1);
+					}
+				}
+			}
+
+			int key = rand.nextInt();
+			if (key > added.first()) {
+				int to_query = added.floor(key);
+				boolean found = qf.search(to_query);
+				if (!found) {
+					System.out.println("failed on key " + to_query);
+					qf.pretty_print();
+					System.exit(1);
+				}
+			}
+		}
+
+		for (Integer i : added) {
+			boolean found = qf.search(i);
+			if (!found) {
+				System.out.println("test 18: something went wrong!! seem to have false negative " + i);
+				qf.search(i);
+				System.exit(1);
+			}
+		}
 	}
 
 	

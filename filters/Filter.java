@@ -15,34 +15,63 @@ public abstract class Filter {
 	abstract protected boolean _insert(long large_hash, boolean insert_only_if_no_match);
 	abstract protected boolean _search(long large_hash);
 
+	int num_logical_entries = 0;
+	
+	public int get_num_logical_entries() {
+		return num_logical_entries;
+	}
 
 	public long delete(long input) {
-		return _delete(get_hash(input));
+		long slot = _delete(get_hash(input));
+		if (slot >= 0) {
+			num_logical_entries--;
+		}
+		return slot;
 	}
 
 	public long delete(String input) {
 		ByteBuffer input_buffer = ByteBuffer.wrap(input.getBytes(StandardCharsets.UTF_8));
-		return _delete(HashFunctions.xxhash(input_buffer));
+		long slot =  _delete(HashFunctions.xxhash(input_buffer));
+		if (slot >= 0) {
+			num_logical_entries--;
+		}
+		return slot;
 	}
 
 	public long delete(byte[] input) {
 		ByteBuffer input_buffer = ByteBuffer.wrap(input);
-		return _delete(HashFunctions.xxhash(input_buffer));
+		long slot =  _delete(HashFunctions.xxhash(input_buffer));
+		if (slot >= 0) {
+			num_logical_entries--;
+		}
+		return slot;
 	}
 	
 	public boolean insert(long input, boolean insert_only_if_no_match) {		
 		long hash = get_hash(input);
-		return _insert(hash, insert_only_if_no_match);
+		boolean success = _insert(hash, insert_only_if_no_match);
+		if (success) {
+			num_logical_entries++;
+		}
+		return success;
 	}
 
 	public boolean insert(String input, boolean insert_only_if_no_match) {
 		ByteBuffer input_buffer = ByteBuffer.wrap(input.getBytes(StandardCharsets.UTF_8));
-		return _insert(HashFunctions.xxhash(input_buffer), insert_only_if_no_match);
+		boolean success =  _insert(HashFunctions.xxhash(input_buffer), insert_only_if_no_match);
+		if (success) {
+			num_logical_entries++;
+		}
+		return success;
 	}
 
 	public boolean insert(byte[] input, boolean insert_only_if_no_match) {
 		ByteBuffer input_buffer = ByteBuffer.wrap(input);
-		return _insert(HashFunctions.xxhash(input_buffer), insert_only_if_no_match);
+		boolean success =  _insert(HashFunctions.xxhash(input_buffer), insert_only_if_no_match);
+		if (success) {
+			num_logical_entries++;
+		}
+		return success;
 	}
 	
 	public boolean search(long input) {

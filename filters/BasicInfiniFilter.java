@@ -26,8 +26,16 @@ public class BasicInfiniFilter extends QuotientFilter {
 		empty_fingerprint = (1L << fp_length) - 2L;
 	}
 	
+	public int get_num_void_entries() {
+		return num_void_entries;
+	}
+	
 	protected boolean compare(long index, long fingerprint) {
 		long generation = parse_unary(index);
+		return compare(index, fingerprint, generation);
+	}
+	
+	protected boolean compare(long index, long fingerprint, long generation) {
 		long first_fp_bit = index * bitPerEntry + 3;
 		long last_fp_bit = index * bitPerEntry + 3 + fingerprintLength - (generation + 1);
 		long actual_fp_length = last_fp_bit - first_fp_bit;
@@ -88,13 +96,15 @@ public class BasicInfiniFilter extends QuotientFilter {
 	
 	// returns the index of the entry if found, -1 otherwise
 	long find_largest_matching_fingerprint_in_run(long index, long fingerprint) {
-		assert(!is_continuation(index));
 		long matching_fingerprint_index = -1;
 		long lowest_age = Integer.MAX_VALUE;
 		do {
-			if (compare(index, fingerprint)) {
-				//System.out.println("found matching FP at index " + index);
-				long age = parse_unary(index);
+			long age = parse_unary(index);
+			//System.out.println("age " + age);
+			if (compare(index, fingerprint, age)) {
+				if (age == 0) {
+					return index;
+				}
 				if (age < lowest_age) {
 					lowest_age = age;
 					matching_fingerprint_index = index;
@@ -119,7 +129,7 @@ public class BasicInfiniFilter extends QuotientFilter {
 	}
 	
 	void handle_empty_fingerprint(long bucket_index, QuotientFilter insertee) {
-		System.out.println("called");
+		//System.out.println("called");
 		/*long bucket1 = bucket_index;
 		long bucket_mask = 1L << power_of_two_size; 		// setting this bit to the proper offset of the slot address field
 		long bucket2 = bucket1 | bucket_mask;	// adding the pivot bit to the slot address field
@@ -149,10 +159,7 @@ public class BasicInfiniFilter extends QuotientFilter {
 		}
 		return num;
 	}
-	
-	public int get_num_void_entries() {
-		return num_void_entries;
-	}
+
 	
 	void report_void_entry_creation(long slot) {
 		num_distinct_void_entries++;
@@ -230,7 +237,7 @@ public class BasicInfiniFilter extends QuotientFilter {
 		fingerprintLength = new_fingerprint_size;
 		bitPerEntry = new_fingerprint_size + 3;
 		filter = new_qf.filter;
-		num_existing_entries = new_qf.num_existing_entries;
+		num_physical_entries = new_qf.num_physical_entries;
 		//num_void_entries = new_qf.num_void_entries;
 		power_of_two_size++;
 		num_extension_slots += 2;
@@ -296,7 +303,7 @@ public class BasicInfiniFilter extends QuotientFilter {
 		fingerprintLength = new_fingerprint_size;
 		bitPerEntry = new_fingerprint_size + 3;
 		filter = new_qf.filter;
-		num_existing_entries = new_qf.num_existing_entries;
+		num_physical_entries = new_qf.num_physical_entries;
 		//num_void_entries = new_qf.num_void_entries;
 		//power_of_two_size++;
 		//num_extension_slots += 2;
@@ -326,23 +333,33 @@ public class BasicInfiniFilter extends QuotientFilter {
 	public void print_age_histogram() {	
 		
 		TreeMap<Long, Long> histogram = new TreeMap<Long, Long>();
-		
+		int tombstones = 0;
+		int empty = 0;
 		for (long i = 0; i <= fingerprintLength; i++) {
 			histogram.put(i, 0L);
 		}
 		
-		long anomalies = 0;
+		//long anomalies = 0;
 		for (int i = 0; i < get_logical_num_slots_plus_extensions(); i++) {
 			if (!is_slot_empty(i)) {
 				long fp = get_fingerprint(i);
 				long age = parse_unary(i); 	
+				//System.out.println();
+				//print_long_in_binary(age, 16);
+				//print_long_in_binary(fp, 16);
 				if (age >= 0) { 
+
 					long count = histogram.get(age);
 					histogram.put(age, count + 1);
 				}
 				else {
 					// entry is likely a deleted_void_fingerprint
+					//System.out.println();
+					tombstones++;
 				}
+			}
+			else {
+				empty++;
 			}
 		}
 		
@@ -354,7 +371,8 @@ public class BasicInfiniFilter extends QuotientFilter {
 				System.out.println("\t" + fingerprint_size + "\t" + e.getValue());
 			}
 		}
-		
+		System.out.println("\ttomb\t" + tombstones);
+		System.out.println("\tempt\t" + empty);
 	}
 
 }

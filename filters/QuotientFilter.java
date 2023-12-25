@@ -13,7 +13,7 @@ public class QuotientFilter extends Filter {
 	int fingerprintLength; 
 	int power_of_two_size; 
 	int num_extension_slots;
-	int num_existing_entries;
+	int num_physical_entries;
 	Bitmap filter;
 	
 	// These three fields are used to prevent throwing exceptions when the buffer space of the filter is exceeded 
@@ -64,6 +64,10 @@ public class QuotientFilter extends Filter {
 	void setup() {
 		
 	}
+	
+	int get_num_expansions() {
+		return num_expansions;
+	}
 
 	//nuevo
 	void update(long init_size)
@@ -78,7 +82,7 @@ public class QuotientFilter extends Filter {
 	}
 	
 	public long get_num_existing_entries() {
-		return num_existing_entries;
+		return num_physical_entries;
 	}
 	
 	public long get_max_entries_before_expansion() {
@@ -131,14 +135,14 @@ public class QuotientFilter extends Filter {
 		//System.out.println("--------------------------");
 		//current.print_filter_summary();
 		//System.out.println();
-		double num_entries = current.get_num_occupied_slots(false);
-		double total_count = current.num_existing_entries;
+		//double num_entries = current.get_num_occupied_slots(false);
+		double total_count = current.get_num_logical_entries();
 		for (QuotientFilter q : other_filters) {
 			//q.print_filter_summary();
 			//System.out.println();
 			//long q_num_entries = q.get_num_occupied_slots(false);
 			//num_entries += q_num_entries;
-			total_count += q.num_existing_entries;
+			//total_count += q.num_physical_entries;
 		}
 		//System.out.println("entry count: " + total_count + "  " + num_entries); 
 		double init_size = 1L << current.power_of_two_size;
@@ -174,9 +178,9 @@ public class QuotientFilter extends Filter {
 	
 	// returns the fraction of occupied slots in the filter
 	public double get_utilization() {
-		long num_logical_slots = 1L << power_of_two_size;
-		long num_entries = get_num_occupied_slots(false);
-		double util = num_entries / (double) num_logical_slots;
+		long num_logical_slots = get_logical_num_slots_plus_extensions();
+		// num_entries = get_num_occupied_slots(false);
+		double util = get_num_existing_entries() / (double) num_logical_slots;
 		return util;
 	}
 	
@@ -274,6 +278,8 @@ public class QuotientFilter extends Filter {
 		long num_bits = slots * bitPerEntry;
 		System.out.println("slots:\t" + slots);
 		System.out.println("entries:\t" + num_entries);
+		System.out.println("num_physical_entries:\t" + num_physical_entries);
+		System.out.println("num_logical_entries:\t" + num_logical_entries);
 		System.out.println("bits\t:" + num_bits);
 		System.out.println("bits/entry\t:" + num_bits / (double)num_entries);
 		System.out.println("FP length:\t" + fingerprintLength);
@@ -360,7 +366,6 @@ public class QuotientFilter extends Filter {
 	
 	// delete the last matching fingerprint in the run
 	long decide_which_fingerprint_to_delete(long index, long fingerprint) {
-		assert(!is_continuation(index));
 		long matching_fingerprint_index = -1;
 		do {
 			if (compare(index, fingerprint)) {
@@ -462,7 +467,7 @@ public class QuotientFilter extends Filter {
 			if (start_of_this_new_run == last_empty_slot) {  
 				last_empty_slot = find_backward_empty_slot(last_cluster_start);
 			}
-			num_existing_entries++;
+			num_physical_entries++;
 			return true; 
 		}
 		
@@ -493,7 +498,7 @@ public class QuotientFilter extends Filter {
 				last_empty_slot = find_backward_empty_slot(last_cluster_start);
 			}
 		} while (!is_this_slot_empty);
-		num_existing_entries++;
+		num_physical_entries++;
 		return true; 
 	}
 	
@@ -548,7 +553,7 @@ public class QuotientFilter extends Filter {
 			}
 			current_index++;
 		} while (!is_this_slot_empty);
-		num_existing_entries++;
+		num_physical_entries++;
 		return true; 
 	}
 	
@@ -698,7 +703,7 @@ public class QuotientFilter extends Filter {
 
 	}
 
-	void set_expansion_threshold(double thresh) {
+	public void set_expansion_threshold(double thresh) {
 		expansion_threshold = thresh;
 		max_entries_before_expansion = (long)(Math.pow(2, power_of_two_size) * expansion_threshold);
 	}
@@ -723,15 +728,19 @@ public class QuotientFilter extends Filter {
 			pretty_print();
 			System.exit(1);
 		}*/
-		
-		if (expand_autonomously && num_existing_entries >= max_entries_before_expansion) {
+		consider_expanding();
+
+		return success; 
+	}
+	
+	void consider_expanding() {
+		if (expand_autonomously && num_physical_entries >= max_entries_before_expansion) {
 			boolean expanded = expand();
 			if (expanded) {
 				num_expansions++;
 			}
 			
 		}
-		return success; 
 	}
 
 	protected long _delete(long large_hash) {
@@ -739,7 +748,7 @@ public class QuotientFilter extends Filter {
 		long fp_long = gen_fingerprint(large_hash);
 		long removed_fp = delete(fp_long, slot_index);
 		if (removed_fp > -1) {
-			num_existing_entries--;
+			num_physical_entries--;
 		}
 		return removed_fp; 
 	}
