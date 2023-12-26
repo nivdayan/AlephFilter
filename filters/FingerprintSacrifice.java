@@ -6,10 +6,10 @@ public class FingerprintSacrifice extends QuotientFilter {
 	public FingerprintSacrifice(int power_of_two, int bits_per_entry) {
 		super(power_of_two, bits_per_entry);
 		// TODO Auto-generated constructor stub
-		max_entries_before_expansion = (int)(Math.pow(2, power_of_two_size) * expansion_threshold);
+		max_entries_before_full = (int)(Math.pow(2, power_of_two_size) * fullness_threshold);
 	}
 	
-	boolean expand() {
+	public boolean expand() {
 		
 		if (fingerprintLength == 0) {
 			is_full = true;
@@ -57,7 +57,7 @@ public class FingerprintSacrifice extends QuotientFilter {
 		num_extension_slots += 2;
 		bitPerEntry--;
 		fingerprintLength--;
-		max_entries_before_expansion = (int)(Math.pow(2, power_of_two_size) * expansion_threshold);
+		max_entries_before_full = (int)(Math.pow(2, power_of_two_size) * fullness_threshold);
 		return true;
 	}
 	

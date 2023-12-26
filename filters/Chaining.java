@@ -23,7 +23,7 @@ public class Chaining extends QuotientFilter {
 	public Chaining(int power_of_two, int bits_per_entry) {
 		super(power_of_two, bits_per_entry);
 		older_filters = new ArrayList<QuotientFilter>();
-		max_entries_before_expansion = (int)(Math.pow(2, power_of_two_size) * expansion_threshold);
+		max_entries_before_full = (int)(Math.pow(2, power_of_two_size) * fullness_threshold);
 		sizeStyle = SizeExpansion.GEOMETRIC;
 		fprStyle = FingerprintGrowthStrategy.FalsePositiveRateExpansion.UNIFORM;
 	}
@@ -55,7 +55,7 @@ public class Chaining extends QuotientFilter {
 		return measure_num_bits_per_entry(this, older_filters);
 	}
 	
-	boolean expand() {
+	public boolean expand() {
 		QuotientFilter placeholder = new QuotientFilter(power_of_two_size, bitPerEntry, filter);
 		placeholder.hash_type = this.hash_type;
 		older_filters.add(placeholder);
@@ -69,7 +69,7 @@ public class Chaining extends QuotientFilter {
 		num_extension_slots += 2;		
 		filter = make_filter(init_size, bitPerEntry);
 		super.update(init_size);
-		max_entries_before_expansion = (long)(Math.pow(2, power_of_two_size) * expansion_threshold);
+		max_entries_before_full = (long)(Math.pow(2, power_of_two_size) * fullness_threshold);
 		//System.out.println("expanding");
 		return true;
 	}

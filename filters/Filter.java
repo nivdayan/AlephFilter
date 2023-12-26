@@ -10,12 +10,27 @@ public abstract class Filter {
 	HashType hash_type;
 	
 	abstract boolean rejuvenate(long key);
-	abstract boolean expand();
+	public boolean expand() { return false; }
 	protected abstract long _delete(long large_hash);
 	abstract protected boolean _insert(long large_hash, boolean insert_only_if_no_match);
 	abstract protected boolean _search(long large_hash);
 
-	int num_logical_entries = 0;
+	public long get_num_physical_entries() {
+		return 0;
+	}
+	
+	public long get_max_entries_before_expansion() {
+		return 0;
+	}
+	
+	public int num_logical_entries = 0;
+	double fullness_threshold; 
+	long max_entries_before_full;
+	public int num_expansions;
+	
+	public int get_num_expansions() {
+		return num_expansions;
+	}
 	
 	public int get_num_logical_entries() {
 		return num_logical_entries;

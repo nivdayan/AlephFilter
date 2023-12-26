@@ -193,8 +193,7 @@ public class ChainedInfiniFilter extends BasicInfiniFilter {
 		if (secondary_IF.num_void_entries > 0 && exceeding_secondary_threshold()) { // our former filter is full 			
 			chain.add(secondary_IF);
 			//int orig_FP = secondary_IF.fingerprintLength;
-			
-			int new_power_of_two = secondary_IF.power_of_two_size;
+						int new_power_of_two = secondary_IF.power_of_two_size;
 			if (fprStyle == FingerprintGrowthStrategy.FalsePositiveRateExpansion.POLYNOMIAL || 
 				fprStyle == FingerprintGrowthStrategy.FalsePositiveRateExpansion.POLYNOMIAL_SHRINK) {
 				new_power_of_two -= 2;
@@ -211,7 +210,7 @@ public class ChainedInfiniFilter extends BasicInfiniFilter {
 		}
 	}
 	
-	boolean expand() {	
+	public boolean expand() {	
 		//print_filter_summary();
 		// creating secondary IF for the first time 
 		
@@ -237,7 +236,7 @@ public class ChainedInfiniFilter extends BasicInfiniFilter {
 		int num_entries = secondary_IF.num_physical_entries + num_void_entries;
 		long logical_slots = secondary_IF.get_logical_num_slots();
 		double secondary_fullness = num_entries / (double)logical_slots;
-		return secondary_fullness > expansion_threshold / 0.95;
+		return secondary_fullness > fullness_threshold / 0.95;
 	}
 	
 	void expand_secondary_IF() {
@@ -399,11 +398,10 @@ public class ChainedInfiniFilter extends BasicInfiniFilter {
 		
 		if (secondary_IF != null) {
 			secondary_IF.print_age_histogram();
-			System.out.println();
 		}
 		
-		for (BasicInfiniFilter q : chain) {
-			q.print_age_histogram();
+		for (int i = chain.size() - 1; i >= 0; i--) {
+			chain.get(i).print_age_histogram();
 		}
 	}
 

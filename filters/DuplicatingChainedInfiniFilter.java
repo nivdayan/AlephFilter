@@ -121,10 +121,10 @@ public class DuplicatingChainedInfiniFilter extends ChainedInfiniFilter {
 		int num_entries = secondary_IF.num_physical_entries;
 		long logical_slots = secondary_IF.get_logical_num_slots();
 		double secondary_fullness = num_entries / (double)logical_slots;
-		return secondary_fullness > expansion_threshold;
+		return secondary_fullness > fullness_threshold;
 	}
 	
-	boolean expand() {
+	public boolean expand() {
 		//System.out.println("expand");
 		//if (num_expansions == 10) {
 			//print_filter_summary();
@@ -169,12 +169,21 @@ public class DuplicatingChainedInfiniFilter extends ChainedInfiniFilter {
 		return _search(hash);
 	}
 	
-	protected boolean compare(long index, long fingerprint) {
+	/*protected boolean compare2(long index, long fingerprint) {
 		long f = get_fingerprint(index);	// it's not ideal that we get_fingerprint multiple times within these sub-methods 
 		if (f == deleted_void_fingerprint) {
 			return false;
 		}
 		return super.compare(index, fingerprint);
+	}*/
+	
+	protected boolean compare(long index, long searched_fingerprint) {
+		long f = get_fingerprint(index);	// it's not ideal that we get_fingerprint multiple times within these sub-methods 
+		if (f == deleted_void_fingerprint) {
+			return false;
+		}
+		long generation = parse_unary_from_fingerprint(f);
+		return super.compare(index, searched_fingerprint, generation, f);
 	}
 	
 	// returns the number of expansions ago that the entry with the longest matching hash turned void within a particular filter along the chain
@@ -342,24 +351,22 @@ public class DuplicatingChainedInfiniFilter extends ChainedInfiniFilter {
 		long slot_index = get_slot_index(large_hash);
 		long fp_long = gen_fingerprint(large_hash);
 		
-		if (slot_index >= get_logical_num_slots()) {
+		/*if (slot_index >= get_logical_num_slots()) {
 			return -1;
-		}
+		}*/
 		// if the run doesn't exist, the key can't have possibly been inserted
-		boolean does_run_exist = is_occupied(slot_index);
+		/*boolean does_run_exist = is_occupied(slot_index);
 		if (!does_run_exist) {
 			return -1;
-		}
+		}*/
 		long run_start_index = find_run_start(slot_index);
 		long matching_fingerprint_index = find_largest_matching_fingerprint_in_run(run_start_index, fp_long);
 		
-		if (matching_fingerprint_index == -1) {
-			// we didn't find a matching fingerprint
+		/*if (matching_fingerprint_index == -1) {
 			return -1;
-		}
+		}*/
 		
 		long matching_fingerprint = get_fingerprint(matching_fingerprint_index);
-
 		if (matching_fingerprint != empty_fingerprint) {
 			//long removed_fp = delete(fp_long, slot_index);
 			

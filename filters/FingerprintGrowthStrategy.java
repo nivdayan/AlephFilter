@@ -42,7 +42,7 @@ public class FingerprintGrowthStrategy {
 			double log = Math.log(max) / Math.log(2);
 			int ceil = 2 * (int)Math.round(log);
 			int FP_size = original_fingerprint_size + ceil;
-			//System.out.println(max_num_expansions_est + " " + FP_size);
+			//System.out.println(num_expansions + " \t " + max_num_expansions_est + " \t " + FP_size);
 			return FP_size;
 			
 		}

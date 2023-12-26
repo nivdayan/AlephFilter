@@ -48,9 +48,9 @@ public class Experiment5 extends InfiniFilterExperiments {
 			long starting_index = 0;
 			for (int i = num_entries_power; i < num_cycles + 1; i++ ) {
 				long end_key = (int)(Math.pow(2, i) * 0.80); // 
-				scalability_experiment(orig, starting_index, end_key, original_qf_res);
+				//scalability_experiment(orig, starting_index, end_key, original_qf_res);
 				starting_index = end_key;
-				System.out.println("static quotient filter " + i);
+				//System.out.println("static quotient filter " + i);
 				//orig.print_filter_summary();
 				//System.out.println();
 			}
@@ -73,7 +73,7 @@ public class Experiment5 extends InfiniFilterExperiments {
 				starting_index = end_key;
 				end_key = qf.get_max_entries_before_expansion() * 2 - qf.get_num_void_entries() * 2 - 1;
 				double percentage_full = qf.get_utilization();
-				System.out.println("aleph widening " + i + "  " + qf.get_num_existing_entries() + "  " + percentage_full);
+				System.out.println("aleph widening " + i + "  " + qf.get_num_physical_entries() + "  " + percentage_full);
 				//long phs_slots = qf.get_physcial_num_slots();
 				
 				//qf.print_filter_summary();
@@ -81,6 +81,7 @@ public class Experiment5 extends InfiniFilterExperiments {
 				//System.out.println("slots: " + phs_slots + "    bits  " + bits_per_entry);
 			}
 			//qf.print_filter_summary();
+			//qf.print_age_histogram();
 		}
 		System.out.println("finished aleph widening warmup");
 		
@@ -105,7 +106,7 @@ public class Experiment5 extends InfiniFilterExperiments {
 				System.out.println("aleph widening " + i + "  " + qf.get_num_logical_entries() + "  " + percentage_full);
 				//long phs_slots = qf.get_physcial_num_slots();
 				
-				qf.print_age_histogram();
+				//qf.print_age_histogram();
 				System.out.println();
 				//System.out.println("slots: " + phs_slots + "    bits  " + bits_per_entry);
 			}

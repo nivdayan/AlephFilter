@@ -18,7 +18,7 @@ public class BasicInfiniFilter extends QuotientFilter {
 	
 	BasicInfiniFilter(int power_of_two, int bits_per_entry) {
 		super(power_of_two, bits_per_entry);
-		max_entries_before_expansion = (long)(Math.pow(2, power_of_two_size) * expansion_threshold);
+		max_entries_before_full = (long)(Math.pow(2, power_of_two_size) * fullness_threshold);
 		set_empty_fingerprint(fingerprintLength);
 	}
 	
@@ -39,10 +39,17 @@ public class BasicInfiniFilter extends QuotientFilter {
 		long first_fp_bit = index * bitPerEntry + 3;
 		long last_fp_bit = index * bitPerEntry + 3 + fingerprintLength - (generation + 1);
 		long actual_fp_length = last_fp_bit - first_fp_bit;
-		long existing_fingerprint = filter.getFromTo(first_fp_bit, last_fp_bit);
 		long mask = (1L << actual_fp_length) - 1L;
+		long existing_fingerprint = filter.getFromTo(first_fp_bit, last_fp_bit);
 		long adjusted_saught_fp = fingerprint & mask;
 		return existing_fingerprint == adjusted_saught_fp;
+	}
+	
+	protected boolean compare(long index, long search_fingerprint, long generation, long slot_fingerprint) {
+		long mask = (1 << (fingerprintLength - generation - 1)) - 1;
+		long adjusted_saught_fp = search_fingerprint & mask;
+		long adjusted_existing_fp = slot_fingerprint & mask;
+		return adjusted_existing_fp == adjusted_saught_fp;
 	}
 		
 	// this is the newer version of parsing the unary encoding. 
@@ -54,6 +61,25 @@ public class BasicInfiniFilter extends QuotientFilter {
 		//System.out.println(get_pretty_str(slot_index));
 		//print_long_in_binary(f, 32);
 		long inverted_fp = ~f;
+		//print_long_in_binary(inverted_fp, 32);
+		long mask = (1L << fingerprintLength) - 1;
+		//print_long_in_binary(mask, 32);
+		long masked = mask & inverted_fp;
+		//print_long_in_binary(masked, 32);
+		long highest = Long.highestOneBit(masked);
+		//print_long_in_binary(highest, 32);
+		long leading_zeros = Long.numberOfTrailingZeros(highest);
+		//System.out.println( leading_zeros );
+		long age = fingerprintLength - leading_zeros - 1;
+		//System.out.println( age );
+		return age;
+	}
+	
+	long parse_unary_from_fingerprint(long fingerprint) {
+		//.out.println();
+		//System.out.println(get_pretty_str(slot_index));
+		//print_long_in_binary(f, 32);
+		long inverted_fp = ~fingerprint;
 		//print_long_in_binary(inverted_fp, 32);
 		long mask = (1L << fingerprintLength) - 1;
 		//print_long_in_binary(mask, 32);
@@ -99,9 +125,10 @@ public class BasicInfiniFilter extends QuotientFilter {
 		long matching_fingerprint_index = -1;
 		long lowest_age = Integer.MAX_VALUE;
 		do {
-			long age = parse_unary(index);
+			long slot_fp = get_fingerprint(index);
+			long age = parse_unary_from_fingerprint(slot_fp);
 			//System.out.println("age " + age);
-			if (compare(index, fingerprint, age)) {
+			if (compare(index, fingerprint, age, slot_fp)) {
 				if (age == 0) {
 					return index;
 				}
@@ -166,7 +193,7 @@ public class BasicInfiniFilter extends QuotientFilter {
 		num_void_entries++;
 	}
 	
-	boolean expand() {
+	public boolean expand() {
 		if (is_full()) {
 			return false;
 		}
@@ -241,7 +268,7 @@ public class BasicInfiniFilter extends QuotientFilter {
 		//num_void_entries = new_qf.num_void_entries;
 		power_of_two_size++;
 		num_extension_slots += 2;
-		max_entries_before_expansion = (int)(Math.pow(2, power_of_two_size) * expansion_threshold);
+		max_entries_before_full = (int)(Math.pow(2, power_of_two_size) * fullness_threshold);
 		last_empty_slot = new_qf.last_empty_slot;
 		last_cluster_start = new_qf.last_cluster_start;
 		backward_steps = new_qf.backward_steps;
@@ -365,14 +392,29 @@ public class BasicInfiniFilter extends QuotientFilter {
 		
 		System.out.println("fingerprint sizes histogram");
 		System.out.println("\tFP size" + "\t" + "count");
+		double num_slots = get_logical_num_slots_plus_extensions();
+		double total_percentage = 0;
 		for ( Entry<Long, Long> e : histogram.entrySet() ) {
 			long fingerprint_size = fingerprintLength - e.getKey() - 1;
 			if (fingerprint_size >= 0) {
-				System.out.println("\t" + fingerprint_size + "\t" + e.getValue());
+				double percentage = (e.getValue() / num_slots) * 100.0;
+				total_percentage += percentage;
+				System.out.println("\t" + fingerprint_size + "\t" + e.getValue() + "\t" + String.format(java.util.Locale.US,"%.2f", percentage) + "%");
 			}
 		}
-		System.out.println("\ttomb\t" + tombstones);
-		System.out.println("\tempt\t" + empty);
+		double tombstones_percent = (tombstones / num_slots) * 100;
+		total_percentage += tombstones_percent;
+		System.out.println("\ttomb\t" + tombstones + "\t" + String.format(java.util.Locale.US,"%.2f", tombstones_percent) + "%");
+		double empty_percent = (empty / num_slots) * 100;
+		total_percentage += empty_percent;
+		System.out.println("\tempt\t" + empty + "\t" + String.format(java.util.Locale.US,"%.2f", empty_percent) + "%");
+		System.out.println("\ttotal\t" + num_slots + "\t" + String.format(java.util.Locale.US,"%.2f", total_percentage) + "%");
+		
+		
+		
+		
 	}
-
+	
 }
+
+

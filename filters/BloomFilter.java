@@ -28,7 +28,7 @@ public class BloomFilter extends Filter {
 	}
 
 	@Override
-	boolean expand() {
+	public boolean expand() {
 		return false;
 	}
 

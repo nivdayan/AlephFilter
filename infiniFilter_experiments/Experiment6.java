@@ -12,198 +12,204 @@ import java.util.Calendar;
 import java.util.LinkedList;
 import java.util.Queue;
 
+import filters.BasicInfiniFilter;
 import filters.ChainedInfiniFilter;
 import filters.DuplicatingChainedInfiniFilter;
 import filters.Filter;
 import filters.FingerprintGrowthStrategy.FalsePositiveRateExpansion;
+import filters.FingerprintSacrifice;
 import filters.QuotientFilter;
 
 public class Experiment6 extends InfiniFilterExperiments {
+	
+	public static boolean condition_to_start_deleting(ChainedInfiniFilter qf) {
+		return !qf.is_chain_empty();
+	}
+	
+	/*public static boolean condition_to_start_deleting(ChainedInfiniFilter qf) {
+		return qf.get_secondary() != null;
+	}*/
+
 	
 	public static void main(String[] args) {
 		parse_arguments(args);
 		
 		InfiniFilterExperiments.bits_per_entry = 8;
-		num_entries_power = 10;	
-		num_cycles = 27;
-		FalsePositiveRateExpansion fpr_style = FalsePositiveRateExpansion.UNIFORM;
+		num_entries_power = 12;	
+		num_cycles = 29;
+		FalsePositiveRateExpansion fpr_style = FalsePositiveRateExpansion.POLYNOMIAL;
+		boolean perform_deletes = false;
+		int num_generations_to_delete = 2;
+		boolean do_warmup = true;
+		boolean do_aleph_polynomial = true;
+		boolean do_aleph_predictive = true;
+		boolean do_infinifilter = true;
 		
-		
-		baseline aleph_wide_res = new baseline();
+		baseline warmup_res = new baseline();
 		{
-			//BasicInfiniFilter qf3 = new DuplicatingChainedInfiniFilter(num_entries_power, bits_per_entry, true);
-			//int fp_size = DuplicatingChainedInfiniFilter.derive_init_fingerprint_size(bits_per_entry - 3, 10);
-
 			DuplicatingChainedInfiniFilter qf = new DuplicatingChainedInfiniFilter(num_entries_power, bits_per_entry, true, -1);
 			qf.set_expand_autonomously(true); 
 			qf.set_fpr_style(fpr_style);
 			long starting_index = 0;
-			long end_key = qf.get_max_entries_before_expansion() - 1;
 			Queue<Long> end_keys = new LinkedList<Long>();
 			Queue<Long> start_keys = new LinkedList<Long>();
-			for (int i = num_entries_power; i <= num_cycles - 4; i++ ) {
-				end_keys.add(end_key);
+			int local_num_generations_to_delete = num_generations_to_delete;
+			for (int i = num_entries_power; i <= num_cycles - 4 && do_warmup; i++ ) {
 				start_keys.add(starting_index);
-				scalability_experiment(qf, starting_index, end_key,  aleph_wide_res);
-				//if (qf.get_secondary() != null ) {
-				if ( ! qf.is_chain_empty() ) {
+				long end_index = scalability_experiment(qf, starting_index,  warmup_res);
+				end_keys.add(end_index);
+				if ( condition_to_start_deleting(qf) && perform_deletes && local_num_generations_to_delete > 0 ) {
 					Long del_start_key = start_keys.remove();
 					Long del_end_key = end_keys.remove();
-					//qf.print_filter_summary();
-					//qf.print_age_histogram();
-					delete_oldest(qf, del_start_key, del_end_key, aleph_wide_res);
-					//qf.print_filter_summary();
-					//qf.print_age_histogram();
-					//System.out.println();
+					delete_oldest(qf, del_start_key, del_end_key, warmup_res);
+					local_num_generations_to_delete--;
 				}
-				//System.out.println(end_key);
-				starting_index = end_key;
-				end_key = qf.get_max_entries_before_expansion() * 2 - qf.get_num_void_entries() * 2 - 1;
+				starting_index = end_index;
 				double percentage_full = qf.get_utilization();
-				System.out.println("aleph fixed-width warmup " + i + "  " + qf.get_num_logical_entries() + "  " + percentage_full);
-				long phs_slots = qf.get_physcial_num_slots();
-				long bits_per_entry = qf.get_fingerprint_length() + 3;
-				//qf.print_filter_summary();
-				//System.out.println();
-				//System.out.println("slots: " + phs_slots + "    bits  " + bits_per_entry);
-				//qf.print_filter_summary();
-				//qf.print_age_histogram();
-				//System.out.println();
+				qf.get_num_physical_entries();
+				System.out.println("aleph fixed-width warmup " + i + "\t" + qf.get_num_logical_entries() + "\t" + qf.get_num_physical_entries() + "\t" + qf.get_max_entries_before_expansion() + "\t" + percentage_full);
 			}
-
-
+			
 		}
-		aleph_wide_res.init();
+		warmup_res.init();
 		System.out.println("finished aleph fixed-width warmup");
 		
-		System.gc();
+
 		
-		baseline aleph_pred_res = new baseline();
+		int expansions_est = (num_cycles - num_entries_power) / 2;
+		baseline aleph_predictive = new baseline();
 		{
-			//int expansions_est = (num_cycles - num_entries_power) / 2;
-			DuplicatingChainedInfiniFilter qf = new DuplicatingChainedInfiniFilter(num_entries_power, bits_per_entry, true, -1);
+			//expansions_est += 4;
+			DuplicatingChainedInfiniFilter qf = new DuplicatingChainedInfiniFilter(num_entries_power, bits_per_entry, true, expansions_est);
 			qf.set_expand_autonomously(true); 
-			qf.set_fpr_style(fpr_style);
+			qf.set_fpr_style(FalsePositiveRateExpansion.POLYNOMIAL_SHRINK);
 			long starting_index = 0;
-			long end_key = qf.get_max_entries_before_expansion() - 1;
 			Queue<Long> end_keys = new LinkedList<Long>();
 			Queue<Long> start_keys = new LinkedList<Long>();
-			for (int i = num_entries_power; i <= num_cycles; i++ ) {
-				end_keys.add(end_key);
+			int local_num_generations_to_delete = num_generations_to_delete;
+			for (int i = num_entries_power; i <= num_cycles && do_aleph_predictive; i++ ) {
 				start_keys.add(starting_index);
-				scalability_experiment(qf, starting_index, end_key,  aleph_pred_res);
-				//if (qf.get_secondary() != null ) {
-				if ( ! qf.is_chain_empty() ) {
+				long end_index = scalability_experiment(qf, starting_index,  aleph_predictive);
+				end_keys.add(end_index);
+				if ( condition_to_start_deleting(qf) && perform_deletes && local_num_generations_to_delete > 0 ) {
 					Long del_start_key = start_keys.remove();
 					Long del_end_key = end_keys.remove();
-					delete_oldest(qf, del_start_key, del_end_key, aleph_pred_res);
+					delete_oldest(qf, del_start_key, del_end_key, aleph_predictive);
+					local_num_generations_to_delete--;
 				}
-				starting_index = end_key;
-				long max_before_exp = qf.get_max_entries_before_expansion();
-				long num_void = qf.get_num_void_entries();
-				end_key = max_before_exp * 2 - num_void * 2 - 1;
+				starting_index = end_index;
 				double percentage_full = qf.get_utilization();
-				System.out.println("aleph fixed-width2 " + i + "  " + qf.get_num_logical_entries() + "  " + percentage_full);
+				qf.get_num_physical_entries();
+				System.out.println("aleph poly-shrink " + i + "\t" + qf.get_num_logical_entries() + "\t" + qf.get_num_physical_entries() + "\t" + qf.get_max_entries_before_expansion() + "\t" + percentage_full);
 				
-				//System.out.println(starting_index + "  " + end_key + "  " + max_before_exp);
-				///qf.print_filter_summary();
-				//System.out.println();
-				//System.out.println("slots: " + phs_slots + "    bits  " + bits_per_entry);
-
 				//qf.print_filter_summary();
 				//qf.print_age_histogram();
-			}
-			//qf.print_filter_summary();
-			//qf.print_filter_summary();
-			//qf.print_age_histogram();
-		}
-		//System.out.println("finished aleph predictive");
-		
-		System.gc();
-		
-
-
-		System.gc();
-		System.out.println("finished aleph fixed-width");
-
-		baseline chained_IF_res = new baseline();
-		{
-			ChainedInfiniFilter qf = new ChainedInfiniFilter(num_entries_power, bits_per_entry);
-			qf.set_expand_autonomously(true); 
-			qf.set_fpr_style(fpr_style);
-			long starting_index = 0;
-			long end_key = qf.get_max_entries_before_expansion() - 1;
-			Queue<Long> end_keys = new LinkedList<Long>();
-			Queue<Long> start_keys = new LinkedList<Long>();
-			for (int i = num_entries_power; i <= num_cycles - 4; i++ ) {
-				end_keys.add(end_key);
-				start_keys.add(starting_index);
-				scalability_experiment(qf, starting_index, end_key,  chained_IF_res);
-				//if (qf.get_secondary() != null ) {
-				if ( ! qf.is_chain_empty() ) {
-					Long del_start_key = start_keys.remove();
-					Long del_end_key = end_keys.remove();
-					//qf.print_filter_summary();
-					//qf.print_age_histogram();
-					delete_oldest(qf, del_start_key, del_end_key, chained_IF_res);
-					//qf.print_filter_summary();
-					//qf.print_age_histogram();
-					//System.out.println();
-				}
-				starting_index = end_key;
-				end_key = qf.get_max_entries_before_expansion() * 2 - 1;
-				double percentage_full = qf.get_utilization();
-				System.out.println("chained IF " + i + "  " + qf.get_num_logical_entries() + "  " + percentage_full);
-				//long phs_slots = qf.get_physcial_num_slots();
-				//long bits_per_entry = qf.get_fingerprint_length() + 3;
-				//System.out.println("slots: " + phs_slots + "    bits  " + bits_per_entry);
-			}
-			//qf.print_filter_summary();
-			//qf.print_filter_summary();
-			//qf.print_age_histogram();
-		}	
-		chained_IF_res.init();
-		System.out.println("finished infinifilter fixed-width");
-		System.gc();
-		
-
-		System.gc();
-
-		baseline chained_IF_res2 = new baseline();
-		{
-			ChainedInfiniFilter qf = new ChainedInfiniFilter(num_entries_power, bits_per_entry);
-			qf.set_expand_autonomously(true); 
-			qf.set_fpr_style(fpr_style);
-			long starting_index = 0;
-			long end_key = qf.get_max_entries_before_expansion() - 1;
-			Queue<Long> end_keys = new LinkedList<Long>();
-			Queue<Long> start_keys = new LinkedList<Long>();
-			for (int i = num_entries_power; i <= num_cycles; i++ ) {
-				end_keys.add(end_key);
-				start_keys.add(starting_index);
-				scalability_experiment(qf, starting_index, end_key,  chained_IF_res2);
-				//if (qf.get_secondary() != null ) {
-				if ( ! qf.is_chain_empty() ) {
-					Long del_start_key = start_keys.remove();
-					Long del_end_key = end_keys.remove();
-					//qf.print_filter_summary();
-					//qf.print_age_histogram();
-					delete_oldest(qf, del_start_key, del_end_key, chained_IF_res2);
-					//qf.print_filter_summary();
-					//qf.print_age_histogram();
-					//System.out.println();
-				}
-				starting_index = end_key;
-				end_key = qf.get_max_entries_before_expansion() * 2 - 1;
-				double percentage_full = qf.get_utilization();
-				System.out.println("chained IF " + i + "  " + qf.get_num_logical_entries() + "  " + percentage_full);
-				//long phs_slots = qf.get_physcial_num_slots();
-				//long bits_per_entry = qf.get_fingerprint_length() + 3;
-				//System.out.println("slots: " + phs_slots + "    bits  " + bits_per_entry);
+				//System.out.println();
 			}
 			//qf.print_filter_summary();
 			qf.print_filter_summary();
 			qf.print_age_histogram();
+		}	
+		System.out.println("finished aleph poly-shrink");
+		System.gc();
+		
+		
+		baseline fingerprint_sacrifice_res = new baseline();
+		{
+			expansions_est += 1;
+			FingerprintSacrifice qf = new FingerprintSacrifice(num_entries_power, bits_per_entry + expansions_est);
+			qf.set_expand_autonomously(true); 
+			long starting_index = 0;
+			Queue<Long> end_keys = new LinkedList<Long>();
+			Queue<Long> start_keys = new LinkedList<Long>();
+			int local_num_generations_to_delete = num_generations_to_delete;
+			for (int i = num_entries_power; i <= num_entries_power + bits_per_entry - 3 + expansions_est && do_warmup; i++ ) {
+				start_keys.add(starting_index);
+				long end_index = scalability_experiment(qf, starting_index,  fingerprint_sacrifice_res);
+				end_keys.add(end_index);
+				if ( perform_deletes && local_num_generations_to_delete > 0 ) {
+					Long del_start_key = start_keys.remove();
+					Long del_end_key = end_keys.remove();
+					delete_oldest(qf, del_start_key, del_end_key, fingerprint_sacrifice_res);
+					local_num_generations_to_delete--;
+				}
+				starting_index = end_index;
+				double percentage_full = qf.get_utilization();
+				qf.get_num_physical_entries();
+				System.out.println("fingerprint sacrifice  " + i + "\t" + qf.get_num_logical_entries() + "\t" + qf.get_num_physical_entries() + "\t" + qf.get_max_entries_before_expansion() + "\t" + percentage_full);
+			}
+			
+		}
+		System.out.println("finished fingerprint sacrifice");
+		
+		
+		
+		System.gc();
+		
+		baseline aleph_regular = new baseline();
+		{
+			DuplicatingChainedInfiniFilter qf = new DuplicatingChainedInfiniFilter(num_entries_power, bits_per_entry, true, -1);
+			qf.set_expand_autonomously(true); 
+			qf.set_fpr_style(fpr_style);
+			long starting_index = 0;
+			Queue<Long> end_keys = new LinkedList<Long>();
+			Queue<Long> start_keys = new LinkedList<Long>();
+			int local_num_generations_to_delete = num_generations_to_delete;
+			for (int i = num_entries_power; i <= num_cycles && do_aleph_polynomial; i++ ) {
+				start_keys.add(starting_index);
+				long end_index = scalability_experiment(qf, starting_index,  aleph_regular);
+				end_keys.add(end_index);
+				if ( condition_to_start_deleting(qf) && perform_deletes && local_num_generations_to_delete > 0 ) {
+					Long del_start_key = start_keys.remove();
+					Long del_end_key = end_keys.remove();
+					delete_oldest(qf, del_start_key, del_end_key, aleph_regular);
+					local_num_generations_to_delete--;
+				}
+				starting_index = end_index;
+				double percentage_full = qf.get_utilization();
+				qf.get_num_physical_entries();
+				System.out.println("aleph fixed-width " + i + "\t" + qf.get_num_logical_entries() + "\t" + qf.get_num_physical_entries() + "\t" + qf.get_max_entries_before_expansion() + "\t" + percentage_full);
+
+			}
+			qf.print_filter_summary();
+			qf.print_age_histogram();
+		}
+		//System.out.println("finished aleph predictive");
+			
+		System.gc();
+		System.out.println("finished aleph fixed-width");
+
+
+		
+
+		System.gc();
+
+		baseline infinifilter = new baseline();
+		{
+			ChainedInfiniFilter qf = new ChainedInfiniFilter(num_entries_power, bits_per_entry);
+			qf.set_expand_autonomously(true); 
+			qf.set_fpr_style(fpr_style);
+			long starting_index = 0;
+			Queue<Long> end_keys = new LinkedList<Long>();
+			Queue<Long> start_keys = new LinkedList<Long>();
+			int local_num_generations_to_delete = num_generations_to_delete;
+			for (int i = num_entries_power; i <= num_cycles && do_infinifilter; i++ ) {
+				start_keys.add(starting_index);
+				long end_index = scalability_experiment(qf, starting_index,  infinifilter);
+				end_keys.add(end_index);
+				if ( condition_to_start_deleting(qf) && perform_deletes && local_num_generations_to_delete > 0 ) {
+					Long del_start_key = start_keys.remove();
+					Long del_end_key = end_keys.remove();
+					delete_oldest(qf, del_start_key, del_end_key, infinifilter);
+					local_num_generations_to_delete--;
+				}
+				starting_index = end_index;
+				double percentage_full = qf.get_utilization();
+				qf.get_num_physical_entries();
+				System.out.println("InfiniFilter " + i + "\t" + qf.get_num_logical_entries() + "\t" + qf.get_num_physical_entries() + "\t" + qf.get_max_entries_before_expansion() + "\t" + percentage_full);
+			}
+			//qf.print_filter_summary();
+			//qf.print_age_histogram();
 		}	
 		System.out.println("finished infinifilter fixed-width");
 		System.gc();
@@ -214,48 +220,48 @@ public class Experiment6 extends InfiniFilterExperiments {
 
 		int commas_before = 1;
 		int commas_after = 5;
-		chained_IF_res.print("num_entries", "insertion_time", commas_before++, commas_after--);
-		chained_IF_res2.print("num_entries", "insertion_time", commas_before++, commas_after--);
-		aleph_wide_res.print("num_entries", "insertion_time", commas_before++, commas_after--);
-		aleph_pred_res.print("num_entries", "insertion_time", commas_before++, commas_after--);
+		aleph_predictive.print("num_entries", "insertion_time", commas_before++, commas_after--);
+		infinifilter.print("num_entries", "insertion_time", commas_before++, commas_after--);
+		fingerprint_sacrifice_res.print("num_entries", "insertion_time", commas_before++, commas_after--);
+		aleph_regular.print("num_entries", "insertion_time", commas_before++, commas_after--);
 
 		
 		System.out.println();
 
 		commas_before = 1;
 		commas_after = 5;
-		chained_IF_res.print("num_entries", "query_time", commas_before++, commas_after--);
-		chained_IF_res2.print("num_entries", "query_time", commas_before++, commas_after--);
-		aleph_wide_res.print("num_entries", "query_time", commas_before++, commas_after--);
-		aleph_pred_res.print("num_entries", "query_time", commas_before++, commas_after--);
+		aleph_predictive.print("num_entries", "query_time", commas_before++, commas_after--);
+		infinifilter.print("num_entries", "query_time", commas_before++, commas_after--);
+		fingerprint_sacrifice_res.print("num_entries", "query_time", commas_before++, commas_after--);
+		aleph_regular.print("num_entries", "query_time", commas_before++, commas_after--);
 
 		
 		System.out.println();
 
 		commas_before = 1;
 		commas_after = 5;
-		chained_IF_res.print("num_entries", "FPR", commas_before++, commas_after--);
-		chained_IF_res2.print("num_entries", "FPR", commas_before++, commas_after--);
-		aleph_wide_res.print("num_entries", "FPR", commas_before++, commas_after--);
-		aleph_pred_res.print("num_entries", "FPR", commas_before++, commas_after--);
+		aleph_predictive.print("num_entries", "FPR", commas_before++, commas_after--);
+		infinifilter.print("num_entries", "FPR", commas_before++, commas_after--);
+		fingerprint_sacrifice_res.print("num_entries", "FPR", commas_before++, commas_after--);
+		aleph_regular.print("num_entries", "FPR", commas_before++, commas_after--);
 
 		System.out.println();
 
 		commas_before = 1;
 		commas_after = 5;
-		chained_IF_res.print("num_entries", "memory", commas_before++, commas_after--);
-		chained_IF_res2.print("num_entries", "memory", commas_before++, commas_after--);
-		aleph_wide_res.print("num_entries", "memory", commas_before++, commas_after--);
-		aleph_pred_res.print("num_entries", "memory", commas_before++, commas_after--);
+		aleph_predictive.print("num_entries", "memory", commas_before++, commas_after--);
+		infinifilter.print("num_entries", "memory", commas_before++, commas_after--);
+		fingerprint_sacrifice_res.print("num_entries", "memory", commas_before++, commas_after--);
+		aleph_regular.print("num_entries", "memory", commas_before++, commas_after--);
 		
 		System.out.println();
 		
 		commas_before = 1;
 		commas_after = 5;
-		chained_IF_res.print("num_entries", "delete_time", commas_before++, commas_after--);
-		chained_IF_res2.print("num_entries", "delete_time", commas_before++, commas_after--);
-		aleph_wide_res.print("num_entries", "delete_time", commas_before++, commas_after--);
-		aleph_pred_res.print("num_entries", "delete_time", commas_before++, commas_after--);
+		aleph_predictive.print("num_entries", "delete_time", commas_before++, commas_after--);
+		infinifilter.print("num_entries", "delete_time", commas_before++, commas_after--);
+		fingerprint_sacrifice_res.print("num_entries", "delete_time", commas_before++, commas_after--);
+		aleph_regular.print("num_entries", "delete_time", commas_before++, commas_after--);
 
 		String timeStamp = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(Calendar.getInstance().getTime());
 
@@ -287,10 +293,10 @@ public class Experiment6 extends InfiniFilterExperiments {
 	        
 			commas_before = 1;
 			commas_after = 5;
-			chained_IF_res.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, insertion_writer);
-			chained_IF_res2.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, insertion_writer);
-			aleph_wide_res.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, insertion_writer);
-			aleph_pred_res.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, insertion_writer);
+			aleph_predictive.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, insertion_writer);
+			infinifilter.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, insertion_writer);
+			fingerprint_sacrifice_res.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, insertion_writer);
+			aleph_regular.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, insertion_writer);
 
 			//System.out.println();
 			insertion_writer.close();
@@ -298,10 +304,10 @@ public class Experiment6 extends InfiniFilterExperiments {
 
 			commas_before = 1;
 			commas_after = 5;
-			chained_IF_res.print_to_file("num_entries", "query_time", commas_before++, commas_after--, reads_writer);
-			chained_IF_res2.print_to_file("num_entries", "query_time", commas_before++, commas_after--, reads_writer);
-			aleph_wide_res.print_to_file("num_entries", "query_time", commas_before++, commas_after--, reads_writer);
-			aleph_pred_res.print_to_file("num_entries", "query_time", commas_before++, commas_after--, reads_writer);
+			aleph_predictive.print_to_file("num_entries", "query_time", commas_before++, commas_after--, reads_writer);
+			infinifilter.print_to_file("num_entries", "query_time", commas_before++, commas_after--, reads_writer);
+			fingerprint_sacrifice_res.print_to_file("num_entries", "query_time", commas_before++, commas_after--, reads_writer);
+			aleph_regular.print_to_file("num_entries", "query_time", commas_before++, commas_after--, reads_writer);
 
 			//System.out.println();
 			reads_writer.close();
@@ -309,10 +315,10 @@ public class Experiment6 extends InfiniFilterExperiments {
 
 			commas_before = 1;
 			commas_after = 5;
-			chained_IF_res.print_to_file("num_entries", "FPR", commas_before++, commas_after--, FPR_writer);
-			chained_IF_res2.print_to_file("num_entries", "FPR", commas_before++, commas_after--, FPR_writer);
-			aleph_wide_res.print_to_file("num_entries", "FPR", commas_before++, commas_after--, FPR_writer);
-			aleph_pred_res.print_to_file("num_entries", "FPR", commas_before++, commas_after--, FPR_writer);
+			aleph_predictive.print_to_file("num_entries", "FPR", commas_before++, commas_after--, FPR_writer);
+			infinifilter.print_to_file("num_entries", "FPR", commas_before++, commas_after--, FPR_writer);
+			fingerprint_sacrifice_res.print_to_file("num_entries", "FPR", commas_before++, commas_after--, FPR_writer);
+			aleph_regular.print_to_file("num_entries", "FPR", commas_before++, commas_after--, FPR_writer);
 
 			FPR_writer.close();
 			FileWriter mem_writer = new FileWriter(memory_file_name);
@@ -321,66 +327,66 @@ public class Experiment6 extends InfiniFilterExperiments {
 
 			commas_before = 1;
 			commas_after = 5;
-			chained_IF_res.print_to_file("num_entries", "memory", commas_before++, commas_after--, mem_writer);
-			chained_IF_res2.print_to_file("num_entries", "memory", commas_before++, commas_after--, mem_writer);
-			aleph_wide_res.print_to_file("num_entries", "memory", commas_before++, commas_after--, mem_writer);
-			aleph_pred_res.print_to_file("num_entries", "memory", commas_before++, commas_after--, mem_writer);
+			aleph_predictive.print_to_file("num_entries", "memory", commas_before++, commas_after--, mem_writer);
+			infinifilter.print_to_file("num_entries", "memory", commas_before++, commas_after--, mem_writer);
+			fingerprint_sacrifice_res.print_to_file("num_entries", "memory", commas_before++, commas_after--, mem_writer);
+			aleph_regular.print_to_file("num_entries", "memory", commas_before++, commas_after--, mem_writer);
 
 			mem_writer.close();
 			FileWriter del_writer = new FileWriter(delete_latency_file_name);
 						
 			commas_before = 1;
 			commas_after = 5;
-			chained_IF_res.print_to_file("num_entries", "delete_time", commas_before++, commas_after--, del_writer);
-			chained_IF_res2.print_to_file("num_entries", "delete_time", commas_before++, commas_after--, del_writer);
-			aleph_wide_res.print_to_file("num_entries", "delete_time", commas_before++, commas_after--, del_writer);
-			aleph_pred_res.print_to_file("num_entries", "delete_time", commas_before++, commas_after--, del_writer);
+			aleph_predictive.print_to_file("num_entries", "delete_time", commas_before++, commas_after--, del_writer);
+			infinifilter.print_to_file("num_entries", "delete_time", commas_before++, commas_after--, del_writer);
+			fingerprint_sacrifice_res.print_to_file("num_entries", "delete_time", commas_before++, commas_after--, del_writer);
+			aleph_regular.print_to_file("num_entries", "delete_time", commas_before++, commas_after--, del_writer);
 			
 			del_writer.close();
 	    	FileWriter all_writer = new FileWriter(all_file_name);
 
 			commas_before = 1;
 			commas_after = 5;
-			chained_IF_res.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, all_writer);
-			chained_IF_res2.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, all_writer);
-			aleph_wide_res.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, all_writer);
-			aleph_pred_res.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, all_writer);
+			aleph_predictive.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, all_writer);
+			infinifilter.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, all_writer);
+			fingerprint_sacrifice_res.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, all_writer);
+			aleph_regular.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, all_writer);
 
 			all_writer.write("\n");
 			
 			commas_before = 1;
 			commas_after = 5;
-			chained_IF_res.print_to_file("num_entries", "query_time", commas_before++, commas_after--, all_writer);
-			chained_IF_res2.print_to_file("num_entries", "query_time", commas_before++, commas_after--, all_writer);
-			aleph_wide_res.print_to_file("num_entries", "query_time", commas_before++, commas_after--, all_writer);
-			aleph_pred_res.print_to_file("num_entries", "query_time", commas_before++, commas_after--, all_writer);
+			aleph_predictive.print_to_file("num_entries", "query_time", commas_before++, commas_after--, all_writer);
+			infinifilter.print_to_file("num_entries", "query_time", commas_before++, commas_after--, all_writer);
+			fingerprint_sacrifice_res.print_to_file("num_entries", "query_time", commas_before++, commas_after--, all_writer);
+			aleph_regular.print_to_file("num_entries", "query_time", commas_before++, commas_after--, all_writer);
 
 			all_writer.write("\n");
 			
 			commas_before = 1;
 			commas_after = 5;
-			chained_IF_res.print_to_file("num_entries", "FPR", commas_before++, commas_after--, all_writer);
-			chained_IF_res2.print_to_file("num_entries", "FPR", commas_before++, commas_after--, all_writer);
-			aleph_wide_res.print_to_file("num_entries", "FPR", commas_before++, commas_after--, all_writer);
-			aleph_pred_res.print_to_file("num_entries", "FPR", commas_before++, commas_after--, all_writer);
+			aleph_predictive.print_to_file("num_entries", "FPR", commas_before++, commas_after--, all_writer);
+			infinifilter.print_to_file("num_entries", "FPR", commas_before++, commas_after--, all_writer);
+			fingerprint_sacrifice_res.print_to_file("num_entries", "FPR", commas_before++, commas_after--, all_writer);
+			aleph_regular.print_to_file("num_entries", "FPR", commas_before++, commas_after--, all_writer);
 
 			all_writer.write("\n");
 			
 			commas_before = 1;
 			commas_after = 5;
-			chained_IF_res.print_to_file("num_entries", "memory", commas_before++, commas_after--, all_writer);
-			chained_IF_res2.print_to_file("num_entries", "memory", commas_before++, commas_after--, all_writer);
-			aleph_wide_res.print_to_file("num_entries", "memory", commas_before++, commas_after--, all_writer);
-			aleph_pred_res.print_to_file("num_entries", "memory", commas_before++, commas_after--, all_writer);
+			aleph_predictive.print_to_file("num_entries", "memory", commas_before++, commas_after--, all_writer);
+			infinifilter.print_to_file("num_entries", "memory", commas_before++, commas_after--, all_writer);
+			fingerprint_sacrifice_res.print_to_file("num_entries", "memory", commas_before++, commas_after--, all_writer);
+			aleph_regular.print_to_file("num_entries", "memory", commas_before++, commas_after--, all_writer);
 
 			all_writer.write("\n");
 
 			commas_before = 1;
 			commas_after = 5;
-			chained_IF_res.print_to_file("num_entries", "delete_time", commas_before++, commas_after--, all_writer);
-			chained_IF_res2.print_to_file("num_entries", "delete_time", commas_before++, commas_after--, all_writer);
-			aleph_wide_res.print_to_file("num_entries", "delete_time", commas_before++, commas_after--, all_writer);
-			aleph_pred_res.print_to_file("num_entries", "delete_time", commas_before++, commas_after--, all_writer);
+			aleph_predictive.print_to_file("num_entries", "delete_time", commas_before++, commas_after--, all_writer);
+			infinifilter.print_to_file("num_entries", "delete_time", commas_before++, commas_after--, all_writer);
+			fingerprint_sacrifice_res.print_to_file("num_entries", "delete_time", commas_before++, commas_after--, all_writer);
+			aleph_regular.print_to_file("num_entries", "delete_time", commas_before++, commas_after--, all_writer);
 			
 			all_writer.close();
 	    	
@@ -393,7 +399,7 @@ public class Experiment6 extends InfiniFilterExperiments {
 
 	
 	
-	static public void scalability_experiment(Filter qf, long initial_key, long end_key, baseline results) {
+	static public long scalability_experiment(Filter qf, long initial_key, baseline results) {
 
 		int num_qeuries = 1000000;
 		int query_index = Integer.MAX_VALUE;
@@ -409,12 +415,27 @@ public class Experiment6 extends InfiniFilterExperiments {
 		
 		//System.out.println("inserting: " + num_entries_to_insert + " to capacity " + Math.pow(2, qf.power_of_two_size));
 
-		boolean successful_insert = false;
+		/*boolean successful_insert = false;
 		do {
 			successful_insert = qf.insert(insertion_index, false);
 			insertion_index++;
-		} while (insertion_index < end_key && successful_insert);
+		} while (insertion_index < end_key && successful_insert);*/
 		
+		if (qf.get_num_expansions() > 0) {
+			qf.expand();
+			qf.num_expansions++;
+		}
+		
+		boolean successful_insert = false;
+		long phys_entries = 0, max_entries = 0;
+		do {
+			successful_insert = qf.insert(insertion_index, false);
+			insertion_index++;
+			//System.out.println(qf.get_num_physical_entries() + "  " + qf.get_max_entries_before_expansion());
+			 phys_entries = qf.get_num_physical_entries();
+			 max_entries = qf.get_max_entries_before_expansion();
+		} while (phys_entries <= max_entries - 2 && successful_insert);
+				
 		
 		if (!successful_insert) {
 			System.out.println("an insertion failed");
@@ -446,7 +467,7 @@ public class Experiment6 extends InfiniFilterExperiments {
 		//double utilization = qf.get_utilization();
 		//System.out.println("utilization  " + utilization);
 		//double num_entries = qf.get_num_entries(true);
-		double num_entries = end_key; // qf.get_num_occupied_slots(true);
+		double num_entries = insertion_index; // qf.get_num_occupied_slots(true);
 
 		results.metrics.get("num_entries").add(num_entries);
 		results.metrics.get("insertion_time").add(avg_insertions);
@@ -456,6 +477,7 @@ public class Experiment6 extends InfiniFilterExperiments {
 		//System.out.println(bits_per_entry);
 		results.metrics.get("memory").add(bits_per_entry);
 		results.metrics.get("delete_time").add(0.0);
+		return insertion_index;
 	}
 	
 	

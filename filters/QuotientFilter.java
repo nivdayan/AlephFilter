@@ -21,8 +21,8 @@ public class QuotientFilter extends Filter {
 	long last_cluster_start;
 	public long backward_steps;
 	
-	double expansion_threshold;
-	long max_entries_before_expansion;
+	
+	
 	boolean expand_autonomously;
 	boolean is_full;
 	
@@ -33,8 +33,6 @@ public class QuotientFilter extends Filter {
 	public double avg_cluster_length;
 	
 	int original_fingerprint_size; 
-	int num_expansions;
-
 	
 	public QuotientFilter(int power_of_two, int bits_per_entry) {
 		power_of_two_size = power_of_two;
@@ -46,8 +44,8 @@ public class QuotientFilter extends Filter {
 		
 		filter = make_filter(init_size, bits_per_entry);
 		
-		expansion_threshold = 0.8;
-		max_entries_before_expansion = (int) (init_size * expansion_threshold);
+		fullness_threshold = 0.8;
+		max_entries_before_full = (int) (init_size * fullness_threshold);
 		expand_autonomously = true;
 		is_full = false;
 		
@@ -64,10 +62,6 @@ public class QuotientFilter extends Filter {
 	void setup() {
 		
 	}
-	
-	int get_num_expansions() {
-		return num_expansions;
-	}
 
 	//nuevo
 	void update(long init_size)
@@ -81,12 +75,12 @@ public class QuotientFilter extends Filter {
 		return false;
 	}
 	
-	public long get_num_existing_entries() {
+	public long get_num_physical_entries() {
 		return num_physical_entries;
 	}
 	
 	public long get_max_entries_before_expansion() {
-		return max_entries_before_expansion;
+		return max_entries_before_full;
 	}
 	
 	public boolean expand_autonomously() {
@@ -119,7 +113,7 @@ public class QuotientFilter extends Filter {
 		backward_steps = 0;
 	}
 	
-	boolean expand() {
+	public boolean expand() {
 		is_full = true;
 		return false;
 	}
@@ -180,7 +174,7 @@ public class QuotientFilter extends Filter {
 	public double get_utilization() {
 		long num_logical_slots = get_logical_num_slots_plus_extensions();
 		// num_entries = get_num_occupied_slots(false);
-		double util = get_num_existing_entries() / (double) num_logical_slots;
+		double util = get_num_physical_entries() / (double) num_logical_slots;
 		return util;
 	}
 	
@@ -704,8 +698,8 @@ public class QuotientFilter extends Filter {
 	}
 
 	public void set_expansion_threshold(double thresh) {
-		expansion_threshold = thresh;
-		max_entries_before_expansion = (long)(Math.pow(2, power_of_two_size) * expansion_threshold);
+		fullness_threshold = thresh;
+		max_entries_before_full = (long)(Math.pow(2, power_of_two_size) * fullness_threshold);
 	}
 	
 	protected boolean _insert(long large_hash, boolean insert_only_if_no_match) {
@@ -728,19 +722,13 @@ public class QuotientFilter extends Filter {
 			pretty_print();
 			System.exit(1);
 		}*/
-		consider_expanding();
-
-		return success; 
-	}
-	
-	void consider_expanding() {
-		if (expand_autonomously && num_physical_entries >= max_entries_before_expansion) {
+		if (expand_autonomously && num_physical_entries >= max_entries_before_full) {
 			boolean expanded = expand();
 			if (expanded) {
 				num_expansions++;
 			}
-			
 		}
+		return success; 
 	}
 
 	protected long _delete(long large_hash) {

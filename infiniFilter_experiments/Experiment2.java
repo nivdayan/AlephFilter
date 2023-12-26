@@ -22,7 +22,7 @@ public class Experiment2 extends InfiniFilterExperiments {
 		int num_false_positives = 0;
 
 		//int num_entries_to_insert = (int) (Math.pow(2, power) * (qf.expansion_threshold )) - qf.num_existing_entries;
-		final long initial_num_entries = qf.get_num_existing_entries();
+		final long initial_num_entries = qf.get_num_physical_entries();
 		long insertion_index = initial_num_entries;
 		Random gen = new Random(initial_num_entries);
 
@@ -51,7 +51,7 @@ public class Experiment2 extends InfiniFilterExperiments {
 					}
 				}
 			}
-		} while (qf.get_num_existing_entries() < qf.get_max_entries_before_expansion() - 1);
+		} while (qf.get_num_physical_entries() < qf.get_max_entries_before_expansion() - 1);
 		//qf.pretty_print();
 
 		long end_insertions = System.nanoTime();

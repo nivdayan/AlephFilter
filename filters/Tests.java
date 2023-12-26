@@ -168,7 +168,7 @@ public class Tests {
 		int bits_per_entry = 10;
 		int num_entries_power = 10;
 		QuotientFilter filter = new QuotientFilter(num_entries_power, bits_per_entry);
-		int num_entries = (int)filter.max_entries_before_expansion;
+		int num_entries = (int)filter.max_entries_before_full;
 		test_no_false_negatives(filter, num_entries);
 	}
 	
@@ -484,7 +484,7 @@ public class Tests {
 		int bits_per_entry = 10;
 		int num_entries_power = 4;
 		FingerprintSacrifice qf = new FingerprintSacrifice(num_entries_power, bits_per_entry);
-		qf.max_entries_before_expansion = Integer.MAX_VALUE; // disable automatic expansion
+		qf.max_entries_before_full = Integer.MAX_VALUE; // disable automatic expansion
 		//qf.print_key(1);
 
 		for (int i = 0; i < 12; i++) {
@@ -525,7 +525,7 @@ public class Tests {
 		int bits_per_entry = 10;
 		int num_entries_power = 3;
 		Chaining qf = new Chaining(num_entries_power, bits_per_entry);
-		qf.max_entries_before_expansion = Integer.MAX_VALUE; // disable automatic expansion
+		qf.max_entries_before_full = Integer.MAX_VALUE; // disable automatic expansion
 
 		int i = 0;
 		while (i < Math.pow(2, num_entries_power) - 2) {
