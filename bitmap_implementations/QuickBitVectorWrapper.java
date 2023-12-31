@@ -1,11 +1,20 @@
 package bitmap_implementations;
 
-public class QuickBitVectorWrapper extends Bitmap {
+import java.util.Arrays;
+
+public class QuickBitVectorWrapper extends Bitmap implements Cloneable {
 
 	long[] bs;
 	
 	public QuickBitVectorWrapper(int bits_per_entry, long num_entries) {
 		bs = QuickBitVector.makeBitVector(num_entries, bits_per_entry);
+	}
+	
+	@Override
+	public Object clone() {
+	    QuickBitVectorWrapper qv = (QuickBitVectorWrapper) super.clone();
+		qv.bs = Arrays.copyOf(bs, bs.length);
+		return qv;
 	}
 
 	@Override

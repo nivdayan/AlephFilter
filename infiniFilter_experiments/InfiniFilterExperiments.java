@@ -13,6 +13,7 @@ import filters.FingerprintSacrifice;
 import filters.BloomFilter;
 import filters.ChainedInfiniFilter;
 import filters.CuckooFilter;
+import filters.DuplicatingChainedInfiniFilter;
 import filters.Filter;
 import filters.FingerprintGrowthStrategy;
 import filters.BasicInfiniFilter;
@@ -61,20 +62,48 @@ public class InfiniFilterExperiments {
 		return null;
 	}
 	
-	public static class baseline {
+	public static class baseline implements Cloneable {
 		public Map<String, ArrayList<Double>> metrics;
 		public baseline() {
 			init();
 		}
 		
+		@Override
+		public Object clone() {
+			baseline f = null;
+			try {
+				f = (baseline) super.clone();
+				f.init();
+				f.metrics.get("num_entries").addAll(metrics.get("num_entries"));
+				f.metrics.get("num_bits").addAll(metrics.get("num_entries"));
+
+				f.metrics.get("insertion_time").addAll(metrics.get("insertion_time"));
+				f.metrics.get("query_time").addAll(metrics.get("query_time"));
+				f.metrics.get("delete_time").addAll(metrics.get("delete_time"));
+				f.metrics.get("FPR").addAll(metrics.get("FPR"));
+				f.metrics.get("memory").addAll(metrics.get("memory"));
+				f.metrics.get("expansion").addAll(metrics.get("expansion"));
+				f.metrics.get("background_deletes").addAll(metrics.get("background_deletes"));
+				f.metrics.get("avg_run_length").addAll(metrics.get("avg_run_length"));
+				f.metrics.get("avg_cluster_length").addAll(metrics.get("avg_cluster_length"));
+			} catch (CloneNotSupportedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			return f;
+		}
+		
 		void init() {
 			metrics = new TreeMap<String, ArrayList<Double>>();
 			metrics.put("num_entries", new ArrayList<Double>());
+			metrics.put("num_bits", new ArrayList<Double>());
 			metrics.put("insertion_time", new ArrayList<Double>());
 			metrics.put("query_time", new ArrayList<Double>());
 			metrics.put("delete_time", new ArrayList<Double>());
 			metrics.put("FPR", new ArrayList<Double>());
 			metrics.put("memory", new ArrayList<Double>());
+			metrics.put("expansion", new ArrayList<Double>());
+			metrics.put("background_deletes", new ArrayList<Double>());
 			metrics.put("avg_run_length", new ArrayList<Double>());
 			metrics.put("avg_cluster_length", new ArrayList<Double>());
 		}
@@ -82,8 +111,23 @@ public class InfiniFilterExperiments {
 		void print(String x_axis_name, String y_axis_name, int commas, int after_commas) {
 			ArrayList<Double> x_axis = metrics.get(x_axis_name);
 			ArrayList<Double> y_axis = metrics.get(y_axis_name);
-			for (int i = 0; i < x_axis.size(); i++) {
+			for (int i = 0; i < y_axis.size(); i++) {
 				System.out.print(x_axis.get(i));	
+				for (int c = 0; c < commas; c++) {
+					System.out.print(",");
+				}
+				System.out.print(y_axis.get(i));	
+				for (int c = 0; c < after_commas; c++) {
+					System.out.print(",");
+				}
+				System.out.println();	
+			}
+		}
+		
+		void print(String y_axis_name, int commas, int after_commas) {
+			ArrayList<Double> y_axis = metrics.get(y_axis_name);
+			for (int i = 0; i < y_axis.size(); i++) {
+				System.out.print(i + 1);	
 				for (int c = 0; c < commas; c++) {
 					System.out.print(",");
 				}

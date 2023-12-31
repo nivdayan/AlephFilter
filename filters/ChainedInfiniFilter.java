@@ -39,7 +39,7 @@ import filters.FingerprintGrowthStrategy.FalsePositiveRateExpansion;
  * 22			25		13				14			11
 */
 
-public class ChainedInfiniFilter extends BasicInfiniFilter {
+public class ChainedInfiniFilter extends BasicInfiniFilter implements Cloneable {
 
 	ArrayList<BasicInfiniFilter> chain;
 	BasicInfiniFilter secondary_IF = null;
@@ -51,6 +51,19 @@ public class ChainedInfiniFilter extends BasicInfiniFilter {
 		super(power_of_two, bits_per_entry);
 		chain = new ArrayList<BasicInfiniFilter>();
 		//num_expansions_left = Integer.MAX_VALUE;
+	}
+	
+	@Override
+	public Object clone() {
+		ChainedInfiniFilter f = null;
+		f = (ChainedInfiniFilter) super.clone();
+		f.secondary_IF = secondary_IF == null ? null : (BasicInfiniFilter) secondary_IF.clone();
+		f.chain = new ArrayList<BasicInfiniFilter>();
+		for (BasicInfiniFilter i : chain) {
+			BasicInfiniFilter cloned = (BasicInfiniFilter) i.clone();
+			f.chain.add( cloned );
+		}
+		return f;
 	}
 	
 	boolean is_full() {
@@ -134,10 +147,20 @@ public class ChainedInfiniFilter extends BasicInfiniFilter {
 		//secondary_IF.num_existing_entries++;
 		boolean success = secondary_IF.insert(adjusted_fingerprint, slot, false);
 		
+
+		if (exceeding_secondary_threshold()) {
+			//pretty_print();
+			consider_expanding_secondary(false);
+			prep_masks();
+		}
+		
 		consider_widening();
 		
 		if (!success) {
-			consider_expanding_secondary();
+			print_age_histogram();
+			consider_expanding_secondary(false);
+			//consider_widening();
+			//secondary_IF.expand();
 			prep_masks();
 			
 			 bucket1 = bucket_index;
@@ -149,13 +172,15 @@ public class ChainedInfiniFilter extends BasicInfiniFilter {
 			success = secondary_IF.insert(adjusted_fingerprint, slot, false);
 			
 			//pretty_print();
-			//print_filter_summary();
+			print_age_histogram();
+			System.out.println();
 		}
 		
 		if (!success) {
-			pretty_print();
+			
 			print_filter_summary();
 			print_age_histogram();
+			pretty_print();
 			System.out.println("didn't manage to insert entry to secondary");
 			System.exit(1);
 		}
@@ -189,9 +214,9 @@ public class ChainedInfiniFilter extends BasicInfiniFilter {
 		secondary_IF.original_fingerprint_size = original_fingerprint_size;
 	}
 	
-	void consider_expanding_secondary() {
-		if (secondary_IF.num_void_entries > 0 && exceeding_secondary_threshold()) { // our former filter is full 			
-			chain.add(secondary_IF);
+	void consider_expanding_secondary(boolean force) {
+		if (secondary_IF.num_void_entries > 0 && (exceeding_secondary_threshold())) { // our former filter is full 			
+			chain.add(secondary_IF); 
 			//int orig_FP = secondary_IF.fingerprintLength;
 						int new_power_of_two = secondary_IF.power_of_two_size;
 			if (fprStyle == FingerprintGrowthStrategy.FalsePositiveRateExpansion.POLYNOMIAL || 
@@ -206,7 +231,7 @@ public class ChainedInfiniFilter extends BasicInfiniFilter {
 		}
 		// we expand the secondary infinifilter
 		else {  // standard procedure
-			expand_secondary_IF();
+			expand_secondary_IF(force);
 		}
 	}
 	
@@ -221,7 +246,7 @@ public class ChainedInfiniFilter extends BasicInfiniFilter {
 		}
 		// the secondary infinifilter is full, so we add it to the chain
 		else if (secondary_IF != null) { // our former filter is full 
-			consider_expanding_secondary();
+			consider_expanding_secondary(false);
 			//consider_widening();
 			//expand_secondary_IF();
 		}
@@ -233,22 +258,23 @@ public class ChainedInfiniFilter extends BasicInfiniFilter {
 	}
 	
 	boolean exceeding_secondary_threshold() {
-		int num_entries = secondary_IF.num_physical_entries + num_void_entries;
+		int num_entries = secondary_IF.num_physical_entries /* + num_void_entries*/;
 		long logical_slots = secondary_IF.get_logical_num_slots();
 		double secondary_fullness = num_entries / (double)logical_slots;
 		return secondary_fullness > fullness_threshold / 0.95;
 	}
 	
-	void expand_secondary_IF() {
+	void expand_secondary_IF(boolean force) {
 		// sometimes we may also want to widen the fingerprint bits, not just expand when we reach capacity
 		// need to consider this 
-		while (exceeding_secondary_threshold()) {
+		while (exceeding_secondary_threshold() || force)  {
 			secondary_IF.num_expansions++;
 			//System.out.println(secondary_IF.num_expansions);
 			if (secondary_IF.num_expansions == 7) {
 				exceeding_secondary_threshold();
 			}
 			secondary_IF.expand();
+			force = false;
 			//logical_slots = secondary_IF.get_logical_num_slots();
 			//secondary_fullness = num_entries / (double)logical_slots;
 			//expanded = true;

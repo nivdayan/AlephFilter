@@ -7,7 +7,7 @@ import java.util.Set;
 import bitmap_implementations.Bitmap;
 import bitmap_implementations.QuickBitVectorWrapper;
 
-public class QuotientFilter extends Filter {
+public class QuotientFilter extends Filter implements Cloneable {
 
 	int bitPerEntry;
 	int fingerprintLength; 
@@ -33,6 +33,14 @@ public class QuotientFilter extends Filter {
 	public double avg_cluster_length;
 	
 	int original_fingerprint_size; 
+	
+	@Override
+	public Object clone() {
+		QuotientFilter f = null;
+		f = (QuotientFilter) super.clone();
+		f.filter = (Bitmap) filter.clone();
+		return f;
+	}
 	
 	public QuotientFilter(int power_of_two, int bits_per_entry) {
 		power_of_two_size = power_of_two;

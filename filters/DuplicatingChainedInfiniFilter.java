@@ -4,13 +4,29 @@ import java.util.ArrayList;
 
 import filters.FingerprintGrowthStrategy.FalsePositiveRateExpansion;
 
-public class DuplicatingChainedInfiniFilter extends ChainedInfiniFilter {
+public class DuplicatingChainedInfiniFilter extends ChainedInfiniFilter implements Cloneable {
 
-	final boolean lazy_deletes;
+	boolean lazy_void_deletes;
+	boolean lazy_new_deletes;
 	long deleted_void_fingerprint = 0;
 	ArrayList<Long> deleted_void_entries;
 	ArrayList<Long> rejuvenated_void_entries;
-	//final long num_expansions_estimate;
+	ArrayList<Long> deleted_new_entries;
+	
+	@Override
+	public Object clone() {
+		DuplicatingChainedInfiniFilter f = (DuplicatingChainedInfiniFilter) super.clone();
+		f.deleted_void_entries = (ArrayList<Long>) deleted_void_entries.clone();
+		f.rejuvenated_void_entries = (ArrayList<Long>) rejuvenated_void_entries.clone();
+		f.deleted_new_entries = (ArrayList<Long>) deleted_new_entries.clone();
+		return f;
+	}
+	
+	enum delayed_op_type {
+		old_delete,
+		new_delete,
+		old_rejuv
+	}
 	
 	public static int derive_init_fingerprint_size(int expected_fp_bits, int expected_expansions) {
 		//int new_fingerprint_size = FingerprintGrowthStrategy.get_new_fingerprint_size(expected_fp_bits, 0, expected_expansions, FalsePositiveRateExpansion.POLYNOMIAL_SHRINK);
@@ -23,12 +39,24 @@ public class DuplicatingChainedInfiniFilter extends ChainedInfiniFilter {
 		return fingerprint_size_int;
 	}
 	
+	public void set_lazy_void_deletes(boolean val) {
+		resolve_pending_operations();
+		lazy_void_deletes = val;
+	}
+	
+	public void set_lazy_new_deletes(boolean val) {
+		resolve_pending_operations();
+		lazy_new_deletes = val;
+	}
+	
 	public DuplicatingChainedInfiniFilter(int power_of_two, int bits_per_entry, boolean _lazy_updates, int new_num_expansions_estimate) {
 		super(power_of_two, bits_per_entry);
 		set_deleted_void_fingerprint();
 		deleted_void_entries = new ArrayList<>(100000);
 		rejuvenated_void_entries = new ArrayList<>();
-		lazy_deletes = _lazy_updates;
+		deleted_new_entries = new ArrayList<>(100000);
+		lazy_void_deletes = _lazy_updates;
+		lazy_new_deletes = false;
 		num_expansions_estimate = new_num_expansions_estimate;
 		//System.out.println(filter.size());
 		if (num_expansions_estimate > -1) {
@@ -81,7 +109,7 @@ public class DuplicatingChainedInfiniFilter extends ChainedInfiniFilter {
 
 		if (exceeding_secondary_threshold()) {
 			//pretty_print();
-			consider_expanding_secondary();
+			consider_expanding_secondary(false);
 			prep_masks();
 		}
 		
@@ -124,6 +152,21 @@ public class DuplicatingChainedInfiniFilter extends ChainedInfiniFilter {
 		return secondary_fullness > fullness_threshold;
 	}
 	
+	public void resolve_pending_operations() {
+		for (Long canon_addr : deleted_new_entries) {
+			delete_tombstone_of_new_entry(canon_addr);
+		}
+		deleted_new_entries.clear();
+		
+		if (!deleted_void_entries.isEmpty()) {
+			remove_deleted_void_entry_duplicates(false, deleted_void_entries);
+		}
+		
+		if (!rejuvenated_void_entries.isEmpty()) {
+			remove_deleted_void_entry_duplicates(true, rejuvenated_void_entries);
+		}
+	}
+	
 	public boolean expand() {
 		//System.out.println("expand");
 		//if (num_expansions == 10) {
@@ -137,13 +180,7 @@ public class DuplicatingChainedInfiniFilter extends ChainedInfiniFilter {
 		//double util = get_utilization();
 		//System.out.println("before expansion " + num_expansions + "\t" + util + "\t" + num_existing_entries + "\t" + num_void_entries + "\t" + num_distinct_void_entries);
 		
-		if (!deleted_void_entries.isEmpty()) {
-			remove_deleted_void_entry_duplicates(false, deleted_void_entries);
-		}
-		
-		if (!rejuvenated_void_entries.isEmpty()) {
-			remove_deleted_void_entry_duplicates(true, rejuvenated_void_entries);
-		}
+		resolve_pending_operations();
 		
 		boolean success = super.expand();	
 		/*if (secondary_IF != null) {
@@ -161,7 +198,42 @@ public class DuplicatingChainedInfiniFilter extends ChainedInfiniFilter {
 		//print_age_histogram();
 		//System.out.println("after expansion " + num_expansions + "\t" + num_existing_entries + "\t" + num_void_entries + "\t" + num_distinct_void_entries);
 		return success;
+	}
+	
+	// returns the index of the entry if found, -1 otherwise
+	long find_largest_matching_fingerprint_in_run(long index, long fingerprint) {
+		long matching_fingerprint_index = -1;
+		long lowest_age = Integer.MAX_VALUE;
+		do {
+			long slot_fp = get_fingerprint(index);
+			long age = parse_unary_from_fingerprint(slot_fp);
+			//System.out.println("age " + age);
+			if (slot_fp != deleted_void_fingerprint && compare(index, fingerprint, age, slot_fp)) {
+				if (age == 0) {
+					return index;
+				}
+				if (age < lowest_age) {
+					lowest_age = age;
+					matching_fingerprint_index = index;
+				}
+			}
+			index++;
+		} while (is_continuation(index));
+		return matching_fingerprint_index; 
+	}
+	
+	
+	boolean delete_tombstone_of_new_entry(long canonical_addr) {
+		long run_start_index = find_run_start(canonical_addr);
+		long matching_fingerprint_index = find_first_void_entry_in_run(run_start_index, deleted_void_fingerprint);
 		
+		//pretty_print();
+		
+		boolean success = delete( deleted_void_fingerprint,  canonical_addr,  run_start_index,  matching_fingerprint_index);
+		if (!success) {
+			System.exit(1);
+		}
+		return success;
 	}
 	
 	public boolean search(long input) {
@@ -271,7 +343,7 @@ public class DuplicatingChainedInfiniFilter extends ChainedInfiniFilter {
 				continue;
 			}
 			
-			long delete_target = canonical_addr == slot_index && lazy_deletes ? deleted_void_fingerprint : empty_fingerprint;
+			long delete_target = canonical_addr == slot_index && lazy_void_deletes ? deleted_void_fingerprint : empty_fingerprint;
 			
 			long matching_fingerprint_index = find_first_void_entry_in_run(run_start_index, delete_target);
 			if (matching_fingerprint_index == -1) {
@@ -309,21 +381,21 @@ public class DuplicatingChainedInfiniFilter extends ChainedInfiniFilter {
 		long slot_index = get_slot_index(large_hash);
 		long fp_long = gen_fingerprint(large_hash);
 		
-		if (slot_index >= get_logical_num_slots()) {
+		/*if (slot_index >= get_logical_num_slots()) {
 			return false;
 		}
 		// if the run doesn't exist, the key can't have possibly been inserted
 		boolean does_run_exist = is_occupied(slot_index);
 		if (!does_run_exist) {
 			return false;
-		}
+		}*/
 		long run_start_index = find_run_start(slot_index);
 		long matching_fingerprint_index = decide_which_fingerprint_to_delete(run_start_index, fp_long);
 
-		if (matching_fingerprint_index == -1) {
+		/*if (matching_fingerprint_index == -1) {
 			// we didn't find a matching fingerprint
 			return false;
-		}
+		}*/
 		
 		long matching_fingerprint = get_fingerprint(matching_fingerprint_index);
 		
@@ -334,7 +406,7 @@ public class DuplicatingChainedInfiniFilter extends ChainedInfiniFilter {
 		}
 		
 		boolean success = true;
-		if (lazy_deletes) {
+		if (lazy_void_deletes) {
 			rejuvenated_void_entries.add(slot_index);
 		}
 		else {
@@ -351,42 +423,79 @@ public class DuplicatingChainedInfiniFilter extends ChainedInfiniFilter {
 		long slot_index = get_slot_index(large_hash);
 		long fp_long = gen_fingerprint(large_hash);
 		
-		/*if (slot_index >= get_logical_num_slots()) {
+		if (slot_index >= get_logical_num_slots()) {
 			return -1;
-		}*/
+		}
 		// if the run doesn't exist, the key can't have possibly been inserted
-		/*boolean does_run_exist = is_occupied(slot_index);
+		boolean does_run_exist = is_occupied(slot_index);
 		if (!does_run_exist) {
 			return -1;
-		}*/
+		}
 		long run_start_index = find_run_start(slot_index);
 		long matching_fingerprint_index = find_largest_matching_fingerprint_in_run(run_start_index, fp_long);
 		
-		/*if (matching_fingerprint_index == -1) {
+		if (matching_fingerprint_index == -1) {
 			return -1;
-		}*/
+		}
 		
 		long matching_fingerprint = get_fingerprint(matching_fingerprint_index);
-		if (matching_fingerprint != empty_fingerprint) {
-			//long removed_fp = delete(fp_long, slot_index);
-			
-			boolean removed_fp = delete(fp_long, slot_index, run_start_index, matching_fingerprint_index);
-			
-			if (removed_fp) {
-				num_physical_entries--;
-				return 1;
-			}		
-		}
+
+		boolean success = true;
 		
-		boolean success;
-		if (lazy_deletes) {
-			set_fingerprint(matching_fingerprint_index, deleted_void_fingerprint);
-			deleted_void_entries.add(slot_index);
-			success = true;
+		if (matching_fingerprint == empty_fingerprint) {
+			
+			if (lazy_void_deletes) {
+				filter.set(matching_fingerprint_index * bitPerEntry + 3, true);
+				deleted_void_entries.add(slot_index);
+			}
+			else {
+				success = delete_duplicates(slot_index, false);
+			}
 		}
 		else {
-			success = delete_duplicates(slot_index, false);
+			
+			if (lazy_new_deletes) {
+				filter.set(matching_fingerprint_index * bitPerEntry + 3, true);
+				deleted_void_entries.add(slot_index);
+			}
+			else {
+				boolean removed_fp = delete(fp_long, slot_index, run_start_index, matching_fingerprint_index);
+				if (removed_fp) {
+					num_physical_entries--;
+				}
+			}
 		}
+		
+		/*if (lazy_void_deletes && matching_fingerprint == empty_fingerprint) {
+			filter.set(matching_fingerprint_index * bitPerEntry + 3, true);
+			deleted_void_entries.add(slot_index);
+		}
+		else if (lazy_new_deletes && matching_fingerprint != empty_fingerprint) {
+			set_fingerprint(matching_fingerprint_index, deleted_void_fingerprint);
+			deleted_new_entries.add(slot_index);
+		}*/
+		
+		/*if (lazy_void_deletes) {
+			//ArrayList<Long> list = matching_fingerprint != empty_fingerprint ? deleted_new_entries : deleted_void_entries;
+			if (matching_fingerprint != empty_fingerprint) {
+				set_fingerprint(matching_fingerprint_index, deleted_void_fingerprint);
+				deleted_new_entries.add(slot_index);
+			}
+			else {
+				filter.set(matching_fingerprint_index * bitPerEntry + 3, true);
+				deleted_void_entries.add(slot_index);
+			}
+		}
+		else if (!lazy_void_deletes && matching_fingerprint != empty_fingerprint) {
+			boolean removed_fp = delete(fp_long, slot_index, run_start_index, matching_fingerprint_index);
+			if (removed_fp) {
+				num_physical_entries--;
+			}
+		}
+		else if (!lazy_void_deletes && matching_fingerprint == empty_fingerprint) {
+			success = delete_duplicates(slot_index, false);
+		}*/
+		
 		return success ? 1 : -1;
 	}
 	

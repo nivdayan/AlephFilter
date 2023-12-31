@@ -31,7 +31,7 @@ public class aleph_tests {
 			//Assert(!success);
 		}
 		
-		if (qf.lazy_deletes) {
+		if (qf.lazy_void_deletes) {
 			qf.expand(); // we need to expand to remove all void entries 
 		}
 		
@@ -95,7 +95,7 @@ public class aleph_tests {
 		//test1();
 		
 		//test3();
-		test4();	
+		//test4();	
 		test5();
 		test6();
 		

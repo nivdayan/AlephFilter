@@ -20,62 +20,64 @@ import filters.FingerprintGrowthStrategy.FalsePositiveRateExpansion;
 import filters.FingerprintSacrifice;
 import filters.QuotientFilter;
 
-public class Experiment8 extends InfiniFilterExperiments {
-	
-	public static boolean condition_to_start_deleting(ChainedInfiniFilter qf) {
-		boolean var =  qf.get_num_expansions() > 12;
-		return var;
-	}
+public class Experiment8_old extends InfiniFilterExperiments {
 	
 	/*public static boolean condition_to_start_deleting(ChainedInfiniFilter qf) {
-		return qf.get_secondary() != null;
+		boolean var =  qf.get_num_expansions() > 10;
+		return var;
 	}*/
-
+	
+	public static boolean condition_to_start_deleting(ChainedInfiniFilter qf) {
+		return !qf.is_chain_empty();
+	}
+	
+	static void warmup(ChainedInfiniFilter qf) {
+		baseline warmup_res = new baseline();
+		long starting_index = 0;
+		Queue<Long> end_keys = new LinkedList<Long>();
+		Queue<Long> start_keys = new LinkedList<Long>();
+		int local_num_generations_to_delete = 10000;
+		for (int i = num_entries_power; i <= num_cycles - 4; i++ ) {
+			start_keys.add(starting_index);
+			long end_index = scalability_experiment(qf, starting_index,  warmup_res);
+			end_keys.add(end_index);
+			if ( condition_to_start_deleting(qf) &&  local_num_generations_to_delete > 0 ) {
+				Long del_start_key = start_keys.remove();
+				Long del_end_key = end_keys.remove();
+				delete_oldest(qf, del_start_key, del_end_key, warmup_res);
+				local_num_generations_to_delete--;
+				//qf.print_age_histogram();
+			}
+			starting_index = end_index;
+			double percentage_full = qf.get_utilization();
+			qf.get_num_physical_entries();
+			System.out.println("aleph fixed-width warmup " + i + "\t" + qf.get_num_logical_entries() + "\t" + qf.get_num_physical_entries() + "\t" + qf.get_max_entries_before_expansion() + "\t" + percentage_full);
+		}
+	}
+	
 	
 	public static void main(String[] args) {
 		parse_arguments(args);
 		
 		InfiniFilterExperiments.bits_per_entry = 8;
-		num_entries_power = 6;	
-		num_cycles = 26;
-		FalsePositiveRateExpansion fpr_style = FalsePositiveRateExpansion.POLYNOMIAL;
+		num_entries_power = 12;	
+		num_cycles = 28;
+		FalsePositiveRateExpansion fpr_style = FalsePositiveRateExpansion.UNIFORM;
 		boolean perform_deletes = true;
 		int num_generations_to_delete = 10000;
-		boolean do_warmup = true;
+		boolean do_warmup = false;
 		boolean do_aleph_polynomial = true;
-		boolean do_aleph_predictive = true;
+		boolean do_aleph_predictive = false;
 		boolean do_infinifilter = true;
 		
-		baseline warmup_res = new baseline();
-		{
+		if (do_warmup) {
+			int expansions_est = (num_cycles - num_entries_power) / 2;
 			DuplicatingChainedInfiniFilter qf = new DuplicatingChainedInfiniFilter(num_entries_power, bits_per_entry, true, -1);
 			qf.set_expand_autonomously(true); 
-			qf.set_fpr_style(fpr_style);
-			long starting_index = 0;
-			Queue<Long> end_keys = new LinkedList<Long>();
-			Queue<Long> start_keys = new LinkedList<Long>();
-			int local_num_generations_to_delete = num_generations_to_delete;
-			for (int i = num_entries_power; i <= num_cycles - 4 && do_warmup; i++ ) {
-				start_keys.add(starting_index);
-				long end_index = scalability_experiment(qf, starting_index,  warmup_res);
-				end_keys.add(end_index);
-				if ( condition_to_start_deleting(qf) && perform_deletes && local_num_generations_to_delete > 0 ) {
-					Long del_start_key = start_keys.remove();
-					Long del_end_key = end_keys.remove();
-					delete_oldest(qf, del_start_key, del_end_key, warmup_res);
-					local_num_generations_to_delete--;
-				}
-				starting_index = end_index;
-				double percentage_full = qf.get_utilization();
-				qf.get_num_physical_entries();
-				System.out.println("aleph fixed-width warmup " + i + "\t" + qf.get_num_logical_entries() + "\t" + qf.get_num_physical_entries() + "\t" + qf.get_max_entries_before_expansion() + "\t" + percentage_full);
-			}
-			
+			qf.set_fpr_style(FalsePositiveRateExpansion.POLYNOMIAL);
+			warmup(qf);	
+			System.out.println("finished aleph fixed-width warmup");
 		}
-		warmup_res.init();
-		System.out.println("finished aleph fixed-width warmup");
-		
-
 		
 		int expansions_est = (num_cycles - num_entries_power) / 2;
 		baseline aleph_predictive = new baseline();
@@ -115,6 +117,41 @@ public class Experiment8 extends InfiniFilterExperiments {
 		System.gc();
 		
 		
+
+		baseline infinifilter = new baseline();
+		{
+			ChainedInfiniFilter qf = new ChainedInfiniFilter(num_entries_power, bits_per_entry);
+			qf.set_expand_autonomously(true); 
+			qf.set_fpr_style(fpr_style);
+			long starting_index = 0;
+			Queue<Long> end_keys = new LinkedList<Long>();
+			Queue<Long> start_keys = new LinkedList<Long>();
+			int local_num_generations_to_delete = num_generations_to_delete;
+			for (int i = num_entries_power; i <= num_cycles && do_infinifilter; i++ ) {
+				start_keys.add(starting_index);
+				long end_index = scalability_experiment(qf, starting_index,  infinifilter);
+				end_keys.add(end_index);
+				if ( condition_to_start_deleting(qf) && perform_deletes && local_num_generations_to_delete > 0 ) {
+					Long del_start_key = start_keys.remove();
+					Long del_end_key = end_keys.remove();
+					delete_oldest(qf, del_start_key, del_end_key, infinifilter);
+					local_num_generations_to_delete--;
+				}
+				starting_index = end_index;
+				double percentage_full = qf.get_utilization();
+				qf.get_num_physical_entries();
+				System.out.println("InfiniFilter " + i + "\t" + qf.get_num_logical_entries() + "\t" + qf.get_num_physical_entries() + "\t" + qf.get_max_entries_before_expansion() + "\t" + percentage_full);
+				//qf.print_filter_summary();
+				qf.print_age_histogram();
+				System.out.println();
+			}
+
+		}	
+		System.out.println("finished infinifilter fixed-width");
+		System.gc();
+		
+		
+		
 		System.gc();
 		
 		baseline aleph_regular = new baseline();
@@ -140,51 +177,20 @@ public class Experiment8 extends InfiniFilterExperiments {
 				double percentage_full = qf.get_utilization();
 				qf.get_num_physical_entries();
 				System.out.println("aleph fixed-width " + i + "\t" + qf.get_num_logical_entries() + "\t" + qf.get_num_physical_entries() + "\t" + qf.get_max_entries_before_expansion() + "\t" + percentage_full);
-
+				qf.print_age_histogram();
+				System.out.println();
 			}
 			qf.print_filter_summary();
 			qf.print_age_histogram();
+			System.out.println();
 		}
 		//System.out.println("finished aleph predictive");
 			
 		System.gc();
 		System.out.println("finished aleph fixed-width");
 
-
-		
-
 		System.gc();
 
-		baseline infinifilter = new baseline();
-		{
-			ChainedInfiniFilter qf = new ChainedInfiniFilter(num_entries_power, bits_per_entry);
-			qf.set_expand_autonomously(true); 
-			qf.set_fpr_style(fpr_style);
-			long starting_index = 0;
-			Queue<Long> end_keys = new LinkedList<Long>();
-			Queue<Long> start_keys = new LinkedList<Long>();
-			int local_num_generations_to_delete = num_generations_to_delete;
-			for (int i = num_entries_power; i <= num_cycles && do_infinifilter; i++ ) {
-				start_keys.add(starting_index);
-				long end_index = scalability_experiment(qf, starting_index,  infinifilter);
-				end_keys.add(end_index);
-				if ( condition_to_start_deleting(qf) && perform_deletes && local_num_generations_to_delete > 0 ) {
-					Long del_start_key = start_keys.remove();
-					Long del_end_key = end_keys.remove();
-					delete_oldest(qf, del_start_key, del_end_key, infinifilter);
-					local_num_generations_to_delete--;
-				}
-				starting_index = end_index;
-				double percentage_full = qf.get_utilization();
-				qf.get_num_physical_entries();
-				System.out.println("InfiniFilter " + i + "\t" + qf.get_num_logical_entries() + "\t" + qf.get_num_physical_entries() + "\t" + qf.get_max_entries_before_expansion() + "\t" + percentage_full);
-			}
-			//qf.print_filter_summary();
-			//qf.print_age_histogram();
-		}	
-		System.out.println("finished infinifilter fixed-width");
-		System.gc();
-		
 		System.gc();
 
 
@@ -232,7 +238,7 @@ public class Experiment8 extends InfiniFilterExperiments {
 		String timeStamp = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(Calendar.getInstance().getTime());
 
 		LocalDate ld = java.time.LocalDate.now();
-		String dir_name = "Exp6_" + bits_per_entry + "_bytes_" +  timeStamp.toString();
+		String dir_name = "Exp8_" + bits_per_entry + "_bytes_" +  timeStamp.toString();
 	    Path path = Paths.get(dir_name);
 
 		try {
@@ -455,7 +461,7 @@ public class Experiment8 extends InfiniFilterExperiments {
 		} while (delete_index < end_key && slot_of_deleted_key > -1);
 		
 		if (slot_of_deleted_key == -1) {
-			System.out.println("an delete failed");
+			System.out.println("a delete failed");
 			System.exit(1);
 		}
 		

@@ -15,6 +15,19 @@ public abstract class Filter {
 	abstract protected boolean _insert(long large_hash, boolean insert_only_if_no_match);
 	abstract protected boolean _search(long large_hash);
 
+	@Override
+	public Object clone() {
+		Filter f = null;
+		try {
+			f = (Filter) super.clone();
+			f.hash_type = hash_type;
+		} catch (CloneNotSupportedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return f;
+	}
+	
 	public long get_num_physical_entries() {
 		return 0;
 	}

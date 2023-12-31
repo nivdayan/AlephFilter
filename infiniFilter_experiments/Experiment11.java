@@ -7,22 +7,33 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.LinkedList;
 import java.util.Queue;
+
+import filters.BasicInfiniFilter;
 import filters.ChainedInfiniFilter;
 import filters.DuplicatingChainedInfiniFilter;
 import filters.Filter;
 import filters.FingerprintGrowthStrategy.FalsePositiveRateExpansion;
+import infiniFilter_experiments.InfiniFilterExperiments.baseline;
 import filters.FingerprintSacrifice;
+import filters.QuotientFilter;
 
-public class Experiment7 extends InfiniFilterExperiments {
+public class Experiment11 extends InfiniFilterExperiments {
 	
 	public static boolean condition_to_start_deleting(ChainedInfiniFilter qf) {
-		return !qf.is_chain_empty();
+		//return !qf.is_chain_empty();
+		return qf.num_expansions > 10;
 	}
 	
-	static void warmup(Filter qf, int cycles) {
+	/*public static boolean condition_to_start_deleting(ChainedInfiniFilter qf) {
+		return qf.get_secondary() != null;
+	}*/
+	
+	static void warmup(DuplicatingChainedInfiniFilter qf, int cycles) {
+		cycles = Math.max(cycles, 25);
 		baseline warmup_res = new baseline();
 		{
 			long starting_index = 0;
@@ -42,87 +53,52 @@ public class Experiment7 extends InfiniFilterExperiments {
 		warmup_res.init();
 		System.out.println("finished warmup");
 	}
+
 	
 	public static void main(String[] args) {
 		parse_arguments(args);
 		
-		InfiniFilterExperiments.bits_per_entry = 12; 
-		num_entries_power = 9; 
-		num_cycles = 29; 
-		FalsePositiveRateExpansion fpr_style = FalsePositiveRateExpansion.UNIFORM;
-		boolean perform_deletes = false;
-		int num_generations_to_delete = 2;
+		InfiniFilterExperiments.bits_per_entry = 12;
+		num_entries_power = 8;	
+		num_cycles = 27;
+		boolean perform_deletes = true;
+		int num_generations_to_delete = 1000;
 		boolean do_warmup = true;
 		boolean do_fingerprint_sacrifice = true;
 		boolean do_aleph_polynomial = true;
+		boolean do_aleph_predictive = true;
 		boolean do_infinifilter = true;
 		
 		if (do_warmup) {
-			Filter qf = new FingerprintSacrifice(num_entries_power, bits_per_entry);
-			warmup(qf, num_entries_power + bits_per_entry - 5);
-		}
-		
-		baseline fingerprint_sacrifice_res = new baseline();
-		{
-			FingerprintSacrifice qf = new FingerprintSacrifice(num_entries_power, bits_per_entry);
-			qf.set_expand_autonomously(true); 
-			long starting_index = 0;
-			Queue<Long> end_keys = new LinkedList<Long>();
-			Queue<Long> start_keys = new LinkedList<Long>();
-			int local_num_generations_to_delete = num_generations_to_delete;
-			for (int i = num_entries_power; i <= num_entries_power + bits_per_entry - 3 && do_fingerprint_sacrifice; i++ ) {
-				start_keys.add(starting_index);
-				long end_index = scalability_experiment(qf, starting_index,  fingerprint_sacrifice_res);
-				end_keys.add(end_index);
-				if ( perform_deletes && local_num_generations_to_delete > 0 ) {
-					Long del_start_key = start_keys.remove();
-					Long del_end_key = end_keys.remove();
-					delete_oldest(qf, del_start_key, del_end_key, fingerprint_sacrifice_res);
-					local_num_generations_to_delete--;
-				}
-				starting_index = end_index;
-				double percentage_full = qf.get_utilization();
-				qf.get_num_physical_entries();
-				System.out.println("fingerprint sacrifice  " + i + "\t" + qf.get_num_logical_entries() + "\t" + qf.get_num_physical_entries() + "\t" + qf.get_max_entries_before_expansion() + "\t" + percentage_full);
-			}
-			
-		}
-		System.out.println("finished fingerprint sacrifice");
-		
-		
-		
-		System.gc();
-		
-		if (do_warmup) {
 			DuplicatingChainedInfiniFilter qf = new DuplicatingChainedInfiniFilter(num_entries_power, bits_per_entry, true, -1);
 			qf.set_expand_autonomously(true); 
-			qf.set_fpr_style(fpr_style);			
+			qf.set_fpr_style(FalsePositiveRateExpansion.UNIFORM);			
 			warmup(qf, num_cycles - 4);
 		}
 		
-		baseline aleph_regular = new baseline();
+		baseline uniform = new baseline();
 		{
 			DuplicatingChainedInfiniFilter qf = new DuplicatingChainedInfiniFilter(num_entries_power, bits_per_entry, true, -1);
 			qf.set_expand_autonomously(true); 
-			qf.set_fpr_style(fpr_style);
+			qf.set_fpr_style(FalsePositiveRateExpansion.UNIFORM);	
 			long starting_index = 0;
 			Queue<Long> end_keys = new LinkedList<Long>();
 			Queue<Long> start_keys = new LinkedList<Long>();
 			int local_num_generations_to_delete = num_generations_to_delete;
 			for (int i = num_entries_power; i <= num_cycles && do_aleph_polynomial; i++ ) {
 				start_keys.add(starting_index);
-				long end_index = scalability_experiment(qf, starting_index,  aleph_regular);
+				long end_index = scalability_experiment(qf, starting_index,  uniform);
 				end_keys.add(end_index);
 				if ( condition_to_start_deleting(qf) && perform_deletes && local_num_generations_to_delete > 0 ) {
 					Long del_start_key = start_keys.remove();
 					Long del_end_key = end_keys.remove();
-					delete_oldest(qf, del_start_key, del_end_key, aleph_regular);
+					delete_oldest(qf, del_start_key, del_end_key, uniform);
 					local_num_generations_to_delete--;
 				}
 				starting_index = end_index;
 				double percentage_full = qf.get_utilization();
 				qf.get_num_physical_entries();
-				System.out.println("aleph fixed-width " + i + "\t" + qf.get_num_logical_entries() + "\t" + qf.get_num_physical_entries() + "\t" + qf.get_max_entries_before_expansion() + "\t" + percentage_full);
+				System.out.println("aleph fixed " + i + "\t" + qf.get_num_logical_entries() + "\t" + qf.get_num_physical_entries() + "\t" + qf.get_max_entries_before_expansion() + "\t" + percentage_full);
 
 			}
 			qf.print_filter_summary();
@@ -131,60 +107,51 @@ public class Experiment7 extends InfiniFilterExperiments {
 		//System.out.println("finished aleph predictive");
 			
 		System.gc();
-		System.out.println("finished aleph fixed-width");
 
-
-		
-
-		System.gc();
-		
 		if (do_warmup) {
-			ChainedInfiniFilter qf = new ChainedInfiniFilter(num_entries_power, bits_per_entry);
+			DuplicatingChainedInfiniFilter qf = new DuplicatingChainedInfiniFilter(num_entries_power, bits_per_entry, true, -1);
 			qf.set_expand_autonomously(true); 
-			qf.set_fpr_style(fpr_style);			
+			qf.set_fpr_style(FalsePositiveRateExpansion.POLYNOMIAL);		
 			warmup(qf, num_cycles - 4);
 		}
-
-		baseline infinifilter = new baseline();
+		
+		baseline polynomial = new baseline();
 		{
-			ChainedInfiniFilter qf = new ChainedInfiniFilter(num_entries_power, bits_per_entry);
+			DuplicatingChainedInfiniFilter qf = new DuplicatingChainedInfiniFilter(num_entries_power, bits_per_entry, true, -1);
 			qf.set_expand_autonomously(true); 
-			qf.set_fpr_style(fpr_style);
+			qf.set_fpr_style(FalsePositiveRateExpansion.POLYNOMIAL);
 			long starting_index = 0;
 			Queue<Long> end_keys = new LinkedList<Long>();
 			Queue<Long> start_keys = new LinkedList<Long>();
 			int local_num_generations_to_delete = num_generations_to_delete;
-			for (int i = num_entries_power; i <= num_cycles && do_infinifilter; i++ ) {
+			for (int i = num_entries_power; i <= num_cycles && do_aleph_polynomial; i++ ) {
 				start_keys.add(starting_index);
-				long end_index = scalability_experiment(qf, starting_index,  infinifilter);
+				long end_index = scalability_experiment(qf, starting_index,  polynomial);
 				end_keys.add(end_index);
 				if ( condition_to_start_deleting(qf) && perform_deletes && local_num_generations_to_delete > 0 ) {
 					Long del_start_key = start_keys.remove();
 					Long del_end_key = end_keys.remove();
-					delete_oldest(qf, del_start_key, del_end_key, infinifilter);
+					delete_oldest(qf, del_start_key, del_end_key, polynomial);
 					local_num_generations_to_delete--;
 				}
 				starting_index = end_index;
 				double percentage_full = qf.get_utilization();
 				qf.get_num_physical_entries();
-				System.out.println("InfiniFilter " + i + "\t" + qf.get_num_logical_entries() + "\t" + qf.get_num_physical_entries() + "\t" + qf.get_max_entries_before_expansion() + "\t" + percentage_full);
+				System.out.println("aleph poly " + i + "\t" + qf.get_num_logical_entries() + "\t" + qf.get_num_physical_entries() + "\t" + qf.get_max_entries_before_expansion() + "\t" + percentage_full);
+
 			}
-			//qf.print_filter_summary();
-			//qf.print_age_histogram();
-		}	
-		System.out.println("finished infinifilter fixed-width");
-		System.gc();
+			qf.print_filter_summary();
+			qf.print_age_histogram();
+		}
 		
 		System.gc();
-
-
 
 		int commas_before = 1;
 		int commas_after = 5;
 		//aleph_predictive.print("num_entries", "insertion_time", commas_before++, commas_after--);
-		infinifilter.print("num_entries", "insertion_time", commas_before++, commas_after--);
-		fingerprint_sacrifice_res.print("num_entries", "insertion_time", commas_before++, commas_after--);
-		aleph_regular.print("num_entries", "insertion_time", commas_before++, commas_after--);
+		//polynomial.print("num_entries", "insertion_time", commas_before++, commas_after--);
+		//fingerprint_sacrifice_res.print("num_entries", "insertion_time", commas_before++, commas_after--);
+		//uniform.print("num_entries", "insertion_time", commas_before++, commas_after--);
 
 		
 		System.out.println();
@@ -192,9 +159,9 @@ public class Experiment7 extends InfiniFilterExperiments {
 		commas_before = 1;
 		commas_after = 5;
 		//aleph_predictive.print("num_entries", "query_time", commas_before++, commas_after--);
-		infinifilter.print("num_entries", "query_time", commas_before++, commas_after--);
-		fingerprint_sacrifice_res.print("num_entries", "query_time", commas_before++, commas_after--);
-		aleph_regular.print("num_entries", "query_time", commas_before++, commas_after--);
+		//polynomial.print("num_entries", "query_time", commas_before++, commas_after--);
+		//fingerprint_sacrifice_res.print("num_entries", "query_time", commas_before++, commas_after--);
+		//uniform.print("num_entries", "query_time", commas_before++, commas_after--);
 
 		
 		System.out.println();
@@ -202,32 +169,43 @@ public class Experiment7 extends InfiniFilterExperiments {
 		commas_before = 1;
 		commas_after = 5;
 		//aleph_predictive.print("num_entries", "FPR", commas_before++, commas_after--);
-		infinifilter.print("num_entries", "FPR", commas_before++, commas_after--);
-		fingerprint_sacrifice_res.print("num_entries", "FPR", commas_before++, commas_after--);
-		aleph_regular.print("num_entries", "FPR", commas_before++, commas_after--);
+		//polynomial.print("num_entries", "FPR", commas_before++, commas_after--);
+		//fingerprint_sacrifice_res.print("num_entries", "FPR", commas_before++, commas_after--);
+		//uniform.print("num_entries", "FPR", commas_before++, commas_after--);
 
 		System.out.println();
 
 		commas_before = 1;
 		commas_after = 5;
 		//aleph_predictive.print("num_entries", "memory", commas_before++, commas_after--);
-		infinifilter.print("num_entries", "memory", commas_before++, commas_after--);
-		fingerprint_sacrifice_res.print("num_entries", "memory", commas_before++, commas_after--);
-		aleph_regular.print("num_entries", "memory", commas_before++, commas_after--);
+		//polynomial.print("num_entries", "memory", commas_before++, commas_after--);
+		//fingerprint_sacrifice_res.print("num_entries", "memory", commas_before++, commas_after--);
+		//uniform.print("num_entries", "memory", commas_before++, commas_after--);
 		
-		System.out.println();
+		//System.out.println();
 		
 		commas_before = 1;
 		commas_after = 5;
 		//aleph_predictive.print("num_entries", "delete_time", commas_before++, commas_after--);
-		infinifilter.print("num_entries", "delete_time", commas_before++, commas_after--);
-		fingerprint_sacrifice_res.print("num_entries", "delete_time", commas_before++, commas_after--);
-		aleph_regular.print("num_entries", "delete_time", commas_before++, commas_after--);
+		//polynomial.print("num_entries", "delete_time", commas_before++, commas_after--);
+		//fingerprint_sacrifice_res.print("num_entries", "delete_time", commas_before++, commas_after--);
+		//uniform.print("num_entries", "delete_time", commas_before++, commas_after--);
 
+		//System.out.println();
+		
+		commas_before = 1;
+		commas_after = 5;
+		polynomial.print("num_entries", "expansion", commas_before++, commas_after--);
+		uniform.print("num_entries", "expansion", commas_before++, commas_after--);
+		polynomial.print("num_entries", "background_deletes", commas_before++, commas_after--);
+		uniform.print("num_entries", "background_deletes", commas_before++, commas_after--);
+
+		
+		
 		String timeStamp = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(Calendar.getInstance().getTime());
 
-		//LocalDate ld = java.time.LocalDate.now();
-		String dir_name = "Exp7_" + bits_per_entry + "_bytes_" +  timeStamp.toString();
+		LocalDate ld = java.time.LocalDate.now();
+		String dir_name = "Exp6_" + bits_per_entry + "_bytes_" +  timeStamp.toString();
 	    Path path = Paths.get(dir_name);
 
 		try {
@@ -255,9 +233,9 @@ public class Experiment7 extends InfiniFilterExperiments {
 			commas_before = 1;
 			commas_after = 5;
 			//aleph_predictive.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, insertion_writer);
-			infinifilter.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, insertion_writer);
-			fingerprint_sacrifice_res.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, insertion_writer);
-			aleph_regular.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, insertion_writer);
+			polynomial.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, insertion_writer);
+			//fingerprint_sacrifice_res.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, insertion_writer);
+			uniform.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, insertion_writer);
 
 			//System.out.println();
 			insertion_writer.close();
@@ -266,9 +244,9 @@ public class Experiment7 extends InfiniFilterExperiments {
 			commas_before = 1;
 			commas_after = 5;
 			//aleph_predictive.print_to_file("num_entries", "query_time", commas_before++, commas_after--, reads_writer);
-			infinifilter.print_to_file("num_entries", "query_time", commas_before++, commas_after--, reads_writer);
-			fingerprint_sacrifice_res.print_to_file("num_entries", "query_time", commas_before++, commas_after--, reads_writer);
-			aleph_regular.print_to_file("num_entries", "query_time", commas_before++, commas_after--, reads_writer);
+			polynomial.print_to_file("num_entries", "query_time", commas_before++, commas_after--, reads_writer);
+			//fingerprint_sacrifice_res.print_to_file("num_entries", "query_time", commas_before++, commas_after--, reads_writer);
+			uniform.print_to_file("num_entries", "query_time", commas_before++, commas_after--, reads_writer);
 
 			//System.out.println();
 			reads_writer.close();
@@ -277,9 +255,9 @@ public class Experiment7 extends InfiniFilterExperiments {
 			commas_before = 1;
 			commas_after = 5;
 			//aleph_predictive.print_to_file("num_entries", "FPR", commas_before++, commas_after--, FPR_writer);
-			infinifilter.print_to_file("num_entries", "FPR", commas_before++, commas_after--, FPR_writer);
-			fingerprint_sacrifice_res.print_to_file("num_entries", "FPR", commas_before++, commas_after--, FPR_writer);
-			aleph_regular.print_to_file("num_entries", "FPR", commas_before++, commas_after--, FPR_writer);
+			polynomial.print_to_file("num_entries", "FPR", commas_before++, commas_after--, FPR_writer);
+			//fingerprint_sacrifice_res.print_to_file("num_entries", "FPR", commas_before++, commas_after--, FPR_writer);
+			uniform.print_to_file("num_entries", "FPR", commas_before++, commas_after--, FPR_writer);
 
 			FPR_writer.close();
 			FileWriter mem_writer = new FileWriter(memory_file_name);
@@ -289,9 +267,9 @@ public class Experiment7 extends InfiniFilterExperiments {
 			commas_before = 1;
 			commas_after = 5;
 			//aleph_predictive.print_to_file("num_entries", "memory", commas_before++, commas_after--, mem_writer);
-			infinifilter.print_to_file("num_entries", "memory", commas_before++, commas_after--, mem_writer);
-			fingerprint_sacrifice_res.print_to_file("num_entries", "memory", commas_before++, commas_after--, mem_writer);
-			aleph_regular.print_to_file("num_entries", "memory", commas_before++, commas_after--, mem_writer);
+			polynomial.print_to_file("num_entries", "memory", commas_before++, commas_after--, mem_writer);
+			//fingerprint_sacrifice_res.print_to_file("num_entries", "memory", commas_before++, commas_after--, mem_writer);
+			uniform.print_to_file("num_entries", "memory", commas_before++, commas_after--, mem_writer);
 
 			mem_writer.close();
 			FileWriter del_writer = new FileWriter(delete_latency_file_name);
@@ -299,9 +277,9 @@ public class Experiment7 extends InfiniFilterExperiments {
 			commas_before = 1;
 			commas_after = 5;
 			//aleph_predictive.print_to_file("num_entries", "delete_time", commas_before++, commas_after--, del_writer);
-			infinifilter.print_to_file("num_entries", "delete_time", commas_before++, commas_after--, del_writer);
-			fingerprint_sacrifice_res.print_to_file("num_entries", "delete_time", commas_before++, commas_after--, del_writer);
-			aleph_regular.print_to_file("num_entries", "delete_time", commas_before++, commas_after--, del_writer);
+			polynomial.print_to_file("num_entries", "delete_time", commas_before++, commas_after--, del_writer);
+			//fingerprint_sacrifice_res.print_to_file("num_entries", "delete_time", commas_before++, commas_after--, del_writer);
+			uniform.print_to_file("num_entries", "delete_time", commas_before++, commas_after--, del_writer);
 			
 			del_writer.close();
 	    	FileWriter all_writer = new FileWriter(all_file_name);
@@ -309,45 +287,45 @@ public class Experiment7 extends InfiniFilterExperiments {
 			commas_before = 1;
 			commas_after = 5;
 			//aleph_predictive.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, all_writer);
-			infinifilter.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, all_writer);
-			fingerprint_sacrifice_res.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, all_writer);
-			aleph_regular.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, all_writer);
+			polynomial.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, all_writer);
+			//fingerprint_sacrifice_res.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, all_writer);
+			uniform.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, all_writer);
 
 			all_writer.write("\n");
 			
 			commas_before = 1;
 			commas_after = 5;
 			//aleph_predictive.print_to_file("num_entries", "query_time", commas_before++, commas_after--, all_writer);
-			infinifilter.print_to_file("num_entries", "query_time", commas_before++, commas_after--, all_writer);
-			fingerprint_sacrifice_res.print_to_file("num_entries", "query_time", commas_before++, commas_after--, all_writer);
-			aleph_regular.print_to_file("num_entries", "query_time", commas_before++, commas_after--, all_writer);
+			polynomial.print_to_file("num_entries", "query_time", commas_before++, commas_after--, all_writer);
+			//fingerprint_sacrifice_res.print_to_file("num_entries", "query_time", commas_before++, commas_after--, all_writer);
+			uniform.print_to_file("num_entries", "query_time", commas_before++, commas_after--, all_writer);
 
 			all_writer.write("\n");
 			
 			commas_before = 1;
 			commas_after = 5;
 			//aleph_predictive.print_to_file("num_entries", "FPR", commas_before++, commas_after--, all_writer);
-			infinifilter.print_to_file("num_entries", "FPR", commas_before++, commas_after--, all_writer);
-			fingerprint_sacrifice_res.print_to_file("num_entries", "FPR", commas_before++, commas_after--, all_writer);
-			aleph_regular.print_to_file("num_entries", "FPR", commas_before++, commas_after--, all_writer);
+			polynomial.print_to_file("num_entries", "FPR", commas_before++, commas_after--, all_writer);
+			//fingerprint_sacrifice_res.print_to_file("num_entries", "FPR", commas_before++, commas_after--, all_writer);
+			uniform.print_to_file("num_entries", "FPR", commas_before++, commas_after--, all_writer);
 
 			all_writer.write("\n");
 			
 			commas_before = 1;
 			commas_after = 5;
 			//aleph_predictive.print_to_file("num_entries", "memory", commas_before++, commas_after--, all_writer);
-			infinifilter.print_to_file("num_entries", "memory", commas_before++, commas_after--, all_writer);
-			fingerprint_sacrifice_res.print_to_file("num_entries", "memory", commas_before++, commas_after--, all_writer);
-			aleph_regular.print_to_file("num_entries", "memory", commas_before++, commas_after--, all_writer);
+			polynomial.print_to_file("num_entries", "memory", commas_before++, commas_after--, all_writer);
+			//fingerprint_sacrifice_res.print_to_file("num_entries", "memory", commas_before++, commas_after--, all_writer);
+			uniform.print_to_file("num_entries", "memory", commas_before++, commas_after--, all_writer);
 
 			all_writer.write("\n");
 
 			commas_before = 1;
 			commas_after = 5;
 			//aleph_predictive.print_to_file("num_entries", "delete_time", commas_before++, commas_after--, all_writer);
-			infinifilter.print_to_file("num_entries", "delete_time", commas_before++, commas_after--, all_writer);
-			fingerprint_sacrifice_res.print_to_file("num_entries", "delete_time", commas_before++, commas_after--, all_writer);
-			aleph_regular.print_to_file("num_entries", "delete_time", commas_before++, commas_after--, all_writer);
+			polynomial.print_to_file("num_entries", "delete_time", commas_before++, commas_after--, all_writer);
+			//fingerprint_sacrifice_res.print_to_file("num_entries", "delete_time", commas_before++, commas_after--, all_writer);
+			uniform.print_to_file("num_entries", "delete_time", commas_before++, commas_after--, all_writer);
 			
 			all_writer.close();
 	    	
@@ -360,7 +338,7 @@ public class Experiment7 extends InfiniFilterExperiments {
 
 	
 	
-	static public long scalability_experiment(Filter qf, long initial_key, baseline results) {
+	static public long scalability_experiment(DuplicatingChainedInfiniFilter qf, long initial_key, baseline results) {
 
 		int num_qeuries = 1000000;
 		int query_index = Integer.MAX_VALUE;
@@ -371,7 +349,10 @@ public class Experiment7 extends InfiniFilterExperiments {
 		
 		long initial_num_entries = initial_key;
 		long insertion_index = initial_key;
-		long start_insertions = System.nanoTime();
+		
+		
+		
+		
 
 		
 		//System.out.println("inserting: " + num_entries_to_insert + " to capacity " + Math.pow(2, qf.power_of_two_size));
@@ -382,10 +363,21 @@ public class Experiment7 extends InfiniFilterExperiments {
 			insertion_index++;
 		} while (insertion_index < end_key && successful_insert);*/
 		
+		
+		long start_deletes = System.nanoTime();
+		qf.resolve_pending_operations();
+		long end_deletes = System.nanoTime();
+		
+		
+		long start_expansion = System.nanoTime();
 		if (qf.get_num_expansions() > 0) {
 			qf.expand();
 			qf.num_expansions++;
 		}
+		long end_expansion = System.nanoTime();
+		
+		
+		long start_insertions = System.nanoTime();
 		
 		boolean successful_insert = false;
 		long phys_entries = 0, max_entries = 0;
@@ -423,6 +415,11 @@ public class Experiment7 extends InfiniFilterExperiments {
 		long end_queries = System.nanoTime();
 		double avg_insertions = (end_insertions - start_insertions) / (double)(insertion_index - initial_num_entries);
 		double avg_queries = (end_queries - start_queries) / (double)num_qeuries;
+		
+		double expansion_time = (end_expansion - start_expansion) ;
+		
+		double background_delete_time = (end_deletes - start_deletes) ;
+		
 		double FPR = num_false_positives / (double)num_qeuries;
 		//int num_slots = (1 << qf.power_of_two_size) - 1;
 		//double utilization = qf.get_utilization();
@@ -438,6 +435,10 @@ public class Experiment7 extends InfiniFilterExperiments {
 		//System.out.println(bits_per_entry);
 		results.metrics.get("memory").add(bits_per_entry);
 		results.metrics.get("delete_time").add(0.0);
+		
+		results.metrics.get("expansion").add(expansion_time);
+		results.metrics.get("background_deletes").add(background_delete_time);	
+				
 		return insertion_index;
 	}
 	
@@ -469,9 +470,7 @@ public class Experiment7 extends InfiniFilterExperiments {
 		double avg_deletes = (end_deletes - start_deletes) / (double)(num_deletes);
 		//System.out.println("avg_deletes  " + avg_deletes);
 		int last_index = results.metrics.get("delete_time").size() - 1;
-		results.metrics.get("delete_time").set(last_index, avg_deletes);
-		
-		
+		results.metrics.get("delete_time").set(last_index, avg_deletes);	
 	}
 	
 }

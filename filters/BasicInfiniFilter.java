@@ -2,9 +2,12 @@
 package filters;
 
 import java.util.Map.Entry;
+
+import bitmap_implementations.Bitmap;
+
 import java.util.TreeMap;
 
-public class BasicInfiniFilter extends QuotientFilter {
+public class BasicInfiniFilter extends QuotientFilter implements Cloneable {
 
 	protected long empty_fingerprint;
 	int num_void_entries = 0;
@@ -20,6 +23,14 @@ public class BasicInfiniFilter extends QuotientFilter {
 		super(power_of_two, bits_per_entry);
 		max_entries_before_full = (long)(Math.pow(2, power_of_two_size) * fullness_threshold);
 		set_empty_fingerprint(fingerprintLength);
+	}
+	
+	@Override
+	public Object clone() {
+		BasicInfiniFilter f = null;
+		f = (BasicInfiniFilter) super.clone();
+		f.fprStyle = fprStyle;
+		return f;
 	}
 	
 	void set_empty_fingerprint(long fp_length) {

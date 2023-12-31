@@ -14,4 +14,13 @@ public abstract class Bitmap {
 		return and != 0;
 	}
 	
+	@Override
+	public Object clone() {
+	    try {
+	        return (Bitmap) super.clone();
+	    } catch (CloneNotSupportedException e) {
+	        return null;
+	    }
+	}
+	
 }

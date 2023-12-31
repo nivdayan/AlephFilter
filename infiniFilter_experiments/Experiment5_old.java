@@ -19,7 +19,7 @@ import filters.BasicInfiniFilter;
 import filters.Chaining;
 import filters.QuotientFilter;
 
-public class Experiment5 extends InfiniFilterExperiments {
+public class Experiment5_old extends InfiniFilterExperiments {
 	
 	public static void main(String[] args) {
 		parse_arguments(args);

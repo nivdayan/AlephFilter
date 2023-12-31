@@ -20,7 +20,7 @@ import infiniFilter_experiments.InfiniFilterExperiments.baseline;
 import filters.FingerprintSacrifice;
 import filters.QuotientFilter;
 
-public class Experiment6 extends InfiniFilterExperiments {
+public class Experiment12 extends InfiniFilterExperiments {
 	
 	public static boolean condition_to_start_deleting(ChainedInfiniFilter qf) {
 		return !qf.is_chain_empty();
@@ -57,29 +57,29 @@ public class Experiment6 extends InfiniFilterExperiments {
 		
 		InfiniFilterExperiments.bits_per_entry = 10;
 		num_entries_power = 8;	
-		num_cycles = 30;
-		FalsePositiveRateExpansion fpr_style = FalsePositiveRateExpansion.POLYNOMIAL;
+		num_cycles = 27;
+		FalsePositiveRateExpansion fpr_style = FalsePositiveRateExpansion.UNIFORM;
 		boolean perform_deletes = false;
 		int num_generations_to_delete = 2;
 		boolean do_warmup = true;
 		boolean do_fingerprint_sacrifice = true;
-		boolean do_aleph_polynomial = true;
-		boolean do_aleph_predictive = true;
-		boolean do_infinifilter = true;
+		boolean do_aleph_polynomial = false;
+		boolean do_aleph_predictive = false;
+		boolean do_infinifilter = false;
 		
 
-		if (do_warmup) {
+		/*if (do_warmup) {
 			int expansions_est = (num_cycles - num_entries_power) / 2;
 			DuplicatingChainedInfiniFilter qf = new DuplicatingChainedInfiniFilter(num_entries_power, bits_per_entry, true, expansions_est);
 			qf.set_expand_autonomously(true); 
 			qf.set_fpr_style(FalsePositiveRateExpansion.POLYNOMIAL_SHRINK);			
 			warmup(qf, num_cycles - 4);
-		}
+		}*/
 		
 		
 		int expansions_est = (num_cycles - num_entries_power) / 2;
 		baseline aleph_predictive = new baseline();
-		{
+		/*{
 			//expansions_est += 4;
 			DuplicatingChainedInfiniFilter qf = new DuplicatingChainedInfiniFilter(num_entries_power, bits_per_entry, true, expansions_est);
 			qf.set_expand_autonomously(true); 
@@ -113,25 +113,28 @@ public class Experiment6 extends InfiniFilterExperiments {
 		}	
 		System.out.println("finished aleph poly-shrink");
 		System.gc();
+		*/
 		
 		if (do_warmup) {
-			FingerprintSacrifice qf = new FingerprintSacrifice(num_entries_power, bits_per_entry + expansions_est);
+			DuplicatingChainedInfiniFilter qf = new DuplicatingChainedInfiniFilter(num_entries_power, bits_per_entry, true, -1);
+			qf.set_fpr_style(fpr_style);			
 			qf.set_expand_autonomously(true); 
-			warmup(qf, num_entries_power + bits_per_entry - 3 + expansions_est - 2);
+			warmup(qf, num_cycles - 4);
 		}
 		
 		baseline fingerprint_sacrifice_res = new baseline();
-		{
-			expansions_est += 1;
-			FingerprintSacrifice qf = new FingerprintSacrifice(num_entries_power, bits_per_entry + expansions_est);
+		for (int j = 8; j <= 16; j += 1) {
+			DuplicatingChainedInfiniFilter qf = new DuplicatingChainedInfiniFilter(num_entries_power, j, true, -1);
+			qf.set_fpr_style(fpr_style);			
 			qf.set_expand_autonomously(true); 
 			long starting_index = 0;
 			Queue<Long> end_keys = new LinkedList<Long>();
 			Queue<Long> start_keys = new LinkedList<Long>();
 			int local_num_generations_to_delete = num_generations_to_delete;
-			for (int i = num_entries_power; i <= num_entries_power + bits_per_entry - 3 + expansions_est && do_fingerprint_sacrifice; i++ ) {
+			baseline temp = new baseline();
+			for (int i = num_entries_power; i <= num_cycles; i++ ) {
 				start_keys.add(starting_index);
-				long end_index = scalability_experiment(qf, starting_index,  fingerprint_sacrifice_res);
+				long end_index = scalability_experiment(qf, starting_index,  temp);
 				end_keys.add(end_index);
 				if ( perform_deletes && local_num_generations_to_delete > 0 ) {
 					Long del_start_key = start_keys.remove();
@@ -144,6 +147,18 @@ public class Experiment6 extends InfiniFilterExperiments {
 				qf.get_num_physical_entries();
 				System.out.println("fingerprint sacrifice  " + i + "\t" + qf.get_num_logical_entries() + "\t" + qf.get_num_physical_entries() + "\t" + qf.get_max_entries_before_expansion() + "\t" + percentage_full);
 			}
+			
+			double insert_time = temp.metrics.get("insertion_time").get(temp.metrics.get("insertion_time").size() - 1);
+			double query_time = temp.metrics.get("query_time").get(temp.metrics.get("query_time").size() - 1);
+			double fpr = temp.metrics.get("FPR").get(temp.metrics.get("FPR").size() - 1);
+			double mem = temp.metrics.get("memory").get(temp.metrics.get("memory").size() - 1);
+			
+			double bits = j;
+			fingerprint_sacrifice_res.metrics.get("num_bits").add(bits);
+			fingerprint_sacrifice_res.metrics.get("insertion_time").add(insert_time);
+			fingerprint_sacrifice_res.metrics.get("query_time").add(query_time);
+			fingerprint_sacrifice_res.metrics.get("FPR").add(fpr);
+			fingerprint_sacrifice_res.metrics.get("memory").add(mem);
 			
 		}
 		System.out.println("finished fingerprint sacrifice");
@@ -181,6 +196,7 @@ public class Experiment6 extends InfiniFilterExperiments {
 				starting_index = end_index;
 				double percentage_full = qf.get_utilization();
 				qf.get_num_physical_entries();
+				
 				System.out.println("aleph fixed-width " + i + "\t" + qf.get_num_logical_entries() + "\t" + qf.get_num_physical_entries() + "\t" + qf.get_max_entries_before_expansion() + "\t" + percentage_full);
 
 			}
@@ -235,48 +251,48 @@ public class Experiment6 extends InfiniFilterExperiments {
 
 		int commas_before = 1;
 		int commas_after = 5;
-		aleph_predictive.print("num_entries", "insertion_time", commas_before++, commas_after--);
-		infinifilter.print("num_entries", "insertion_time", commas_before++, commas_after--);
-		fingerprint_sacrifice_res.print("num_entries", "insertion_time", commas_before++, commas_after--);
-		aleph_regular.print("num_entries", "insertion_time", commas_before++, commas_after--);
+		aleph_predictive.print("num_bits", "insertion_time", commas_before++, commas_after--);
+		infinifilter.print("num_bits", "insertion_time", commas_before++, commas_after--);
+		fingerprint_sacrifice_res.print("num_bits", "insertion_time", commas_before++, commas_after--);
+		aleph_regular.print("num_bits", "insertion_time", commas_before++, commas_after--);
 
 		
 		System.out.println();
 
 		commas_before = 1;
 		commas_after = 5;
-		aleph_predictive.print("num_entries", "query_time", commas_before++, commas_after--);
-		infinifilter.print("num_entries", "query_time", commas_before++, commas_after--);
-		fingerprint_sacrifice_res.print("num_entries", "query_time", commas_before++, commas_after--);
-		aleph_regular.print("num_entries", "query_time", commas_before++, commas_after--);
+		aleph_predictive.print("num_bits", "query_time", commas_before++, commas_after--);
+		infinifilter.print("num_bits", "query_time", commas_before++, commas_after--);
+		fingerprint_sacrifice_res.print("num_bits", "query_time", commas_before++, commas_after--);
+		aleph_regular.print("num_bits", "query_time", commas_before++, commas_after--);
 
 		
 		System.out.println();
 
 		commas_before = 1;
 		commas_after = 5;
-		aleph_predictive.print("num_entries", "FPR", commas_before++, commas_after--);
-		infinifilter.print("num_entries", "FPR", commas_before++, commas_after--);
-		fingerprint_sacrifice_res.print("num_entries", "FPR", commas_before++, commas_after--);
-		aleph_regular.print("num_entries", "FPR", commas_before++, commas_after--);
+		aleph_predictive.print("num_bits", "FPR", commas_before++, commas_after--);
+		infinifilter.print("num_bits", "FPR", commas_before++, commas_after--);
+		fingerprint_sacrifice_res.print("num_bits", "FPR", commas_before++, commas_after--);
+		aleph_regular.print("num_bits", "FPR", commas_before++, commas_after--);
 
 		System.out.println();
 
 		commas_before = 1;
 		commas_after = 5;
-		aleph_predictive.print("num_entries", "memory", commas_before++, commas_after--);
-		infinifilter.print("num_entries", "memory", commas_before++, commas_after--);
-		fingerprint_sacrifice_res.print("num_entries", "memory", commas_before++, commas_after--);
-		aleph_regular.print("num_entries", "memory", commas_before++, commas_after--);
+		aleph_predictive.print("num_bits", "memory", commas_before++, commas_after--);
+		infinifilter.print("num_bits", "memory", commas_before++, commas_after--);
+		fingerprint_sacrifice_res.print("num_bits", "memory", commas_before++, commas_after--);
+		aleph_regular.print("num_bits", "memory", commas_before++, commas_after--);
 		
 		System.out.println();
 		
 		commas_before = 1;
 		commas_after = 5;
-		aleph_predictive.print("num_entries", "delete_time", commas_before++, commas_after--);
-		infinifilter.print("num_entries", "delete_time", commas_before++, commas_after--);
-		fingerprint_sacrifice_res.print("num_entries", "delete_time", commas_before++, commas_after--);
-		aleph_regular.print("num_entries", "delete_time", commas_before++, commas_after--);
+		aleph_predictive.print("num_bits", "delete_time", commas_before++, commas_after--);
+		infinifilter.print("num_bits", "delete_time", commas_before++, commas_after--);
+		fingerprint_sacrifice_res.print("num_bits", "delete_time", commas_before++, commas_after--);
+		aleph_regular.print("num_bits", "delete_time", commas_before++, commas_after--);
 
 		String timeStamp = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(Calendar.getInstance().getTime());
 
@@ -489,7 +505,6 @@ public class Experiment6 extends InfiniFilterExperiments {
 		results.metrics.get("query_time").add(avg_queries);
 		results.metrics.get("FPR").add(FPR);
 		double bits_per_entry = qf.measure_num_bits_per_entry();
-		//System.out.println(bits_per_entry);
 		results.metrics.get("memory").add(bits_per_entry);
 		results.metrics.get("delete_time").add(0.0);
 		return insertion_index;
