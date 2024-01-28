@@ -1,3 +1,19 @@
+/*
+ * Copyright 2024 Niv Dayan
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+ */
+
 package infiniFilter_experiments;
 
 import java.io.FileWriter;
@@ -16,7 +32,7 @@ import filters.Filter;
 import filters.FingerprintGrowthStrategy.FalsePositiveRateExpansion;
 import filters.FingerprintSacrifice;
 
-public class Experiment7 extends InfiniFilterExperiments {
+public class Experiment7 extends ExperimentsBase {
 	
 	public static boolean condition_to_start_deleting(ChainedInfiniFilter qf) {
 		return !qf.is_chain_empty();
@@ -46,7 +62,7 @@ public class Experiment7 extends InfiniFilterExperiments {
 	public static void main(String[] args) {
 		parse_arguments(args);
 		
-		InfiniFilterExperiments.bits_per_entry = 12; 
+		ExperimentsBase.bits_per_entry = 12; 
 		num_entries_power = 9; 
 		num_cycles = 29; 
 		FalsePositiveRateExpansion fpr_style = FalsePositiveRateExpansion.UNIFORM;

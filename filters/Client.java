@@ -1,11 +1,26 @@
+/*
+ * Copyright 2024 Niv Dayan
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+ */
+
 package filters;
 
 import infiniFilter_experiments.Experiment1;
 import infiniFilter_experiments.Experiment2;
 import infiniFilter_experiments.Experiment3;
 import infiniFilter_experiments.Experiment4;
-import infiniFilter_experiments.Experiment5_old;
-import infiniFilter_experiments.InfiniFilterExperiments;
+import infiniFilter_experiments.ExperimentsBase;
 
 public class Client {
 
@@ -40,33 +55,15 @@ public class Client {
 		System.out.println("all tests passed");
 	}
 	
+	
+
 	static public  void main(String[] args) {		
-		//aleph_tests.test1();
-		//run_tests();
-		//aleph_tests.test1();
-		
+		run_tests();
+		Tests.measure_cluster_length_distribution();
 		aleph_tests.run_tests();
-		
 		
 		System.out.println("success");
 		
-		
-		//run_tests();
-		//Tests.test12();
-		
-		//QuotientFilter new_qf = new QuotientFilter(30 + 1, 13 + 3);
-		
-		//Experiment5.main(null);
-		
-		//Experiment2.main(null);
-		//Experiment3.main(null);
-		
-		//Experiment4.main(null);
-		//InfiniFilterExperiments.rejuvenation_experiment();
-		//InfiniFilterExperiments.memory_experiment();
-		//InfiniFilterExperiments.experiment_false_positives();
-		//InfiniFilterExperiments.experiment_insertion_speed();
-		//InfiniFilterExperiments.increasing_fingerprint_sizes_experiment();
 	}
 
 

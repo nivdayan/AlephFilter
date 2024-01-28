@@ -1,14 +1,31 @@
+/*
+ * Copyright 2024 Niv Dayan
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+ */
+
 package filters;
 
 import java.util.BitSet;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
 
 import bitmap_implementations.Bitmap;
 import infiniFilter_experiments.Experiment1;
-import infiniFilter_experiments.InfiniFilterExperiments;
+import infiniFilter_experiments.ExperimentsBase;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -2002,7 +2019,7 @@ public class Tests {
 		}
 		
 		static public void test_FPR(Filter f, double model_FPR, long insertions) {
-			InfiniFilterExperiments.baseline results = new InfiniFilterExperiments.baseline();
+			ExperimentsBase.baseline results = new ExperimentsBase.baseline();
 			Experiment1.scalability_experiment( f,  0, insertions, results);
 			double FPR = results.metrics.get("FPR").get(0);
 			//System.out.println(FPR + ", " + model_FPR);
@@ -2028,6 +2045,28 @@ public class Tests {
 				double model_FPR = Math.pow(2, - bits_per_entry + 3);
 				test_FPR(qf, model_FPR, num_entries);
 			}
+		}
+		
+		// testing the false positive rate is as expected
+		static public void measure_cluster_length_distribution() {
+			int num_entries_power = 20;
+			long num_entries = (long)(Math.pow(2, num_entries_power) * 0.95);
+			int bits_per_entry = 10;
+			QuotientFilter qf = new QuotientFilter(num_entries_power, bits_per_entry);
+			qf.expand_autonomously = false;
+			double model_FPR = Math.pow(2, - bits_per_entry + 3);
+			test_FPR(qf, model_FPR, num_entries);
+			
+			qf.pretty_print();
+			
+			Map<Integer,Integer> histogram = qf.compute_statistics();
+			
+			for (Map.Entry<Integer, Integer> set : histogram.entrySet()) {
+			    System.out.println(set.getKey() + ", " + set.getValue());
+			}
+			
+			System.out.println("cluster length  " + qf.avg_cluster_length);
+			
 		}
 		
 		// testing the false positive rate is as expected

@@ -1,8 +1,26 @@
+/*
+ * Copyright 2024 Niv Dayan
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+ */
+
 package filters;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
 import bitmap_implementations.Bitmap;
 import bitmap_implementations.QuickBitVectorWrapper;
@@ -761,9 +779,11 @@ public class QuotientFilter extends Filter implements Cloneable {
 		return filter.get(offset);
 	}
 
-	public void compute_statistics() {
+	public Map<Integer,Integer> compute_statistics() {
 		num_runs = 0;
 		num_clusters = 0; 
+		Map<Integer,Integer> histogram = new TreeMap<Integer,Integer>();
+		
 		double sum_run_lengths = 0;
 		double sum_cluster_lengths = 0; 
 		
@@ -779,6 +799,12 @@ public class QuotientFilter extends Filter implements Cloneable {
 			
 			if 	( !occupied && !continuation && !shifted ) { // empty slot
 				sum_cluster_lengths += current_cluster_length;
+				int new_hist_val = 1;
+				if (histogram.containsKey(current_cluster_length)) {
+					new_hist_val = histogram.get(current_cluster_length) + 1;
+				}
+				histogram.put(current_cluster_length, new_hist_val);
+				
 				current_cluster_length = 0; 
 				sum_run_lengths += current_run_length;
 				current_run_length = 0;
@@ -800,7 +826,11 @@ public class QuotientFilter extends Filter implements Cloneable {
 				num_runs++;
 				num_clusters++;
 				sum_cluster_lengths += current_cluster_length;
-				sum_run_lengths += current_run_length;
+				int new_hist_val = 1;
+				if (histogram.containsKey(current_cluster_length)) {
+					new_hist_val = histogram.get(current_cluster_length) + 1;
+				}
+				histogram.put(current_cluster_length, new_hist_val);				sum_run_lengths += current_run_length;
 				current_cluster_length = 1; 
 				current_run_length = 1;
 			}
@@ -820,6 +850,7 @@ public class QuotientFilter extends Filter implements Cloneable {
 		}
 		avg_run_length = sum_run_lengths / num_runs;
 		avg_cluster_length = sum_cluster_lengths / num_clusters;
+		return histogram;
 	}
 
 
@@ -839,7 +870,7 @@ public class QuotientFilter extends Filter implements Cloneable {
 	public ArrayList<Integer> measure_cluster_length()
 	{
 		ArrayList<Integer> ar = new ArrayList<Integer>();
-
+		
 		num_runs = 0;
 		num_clusters = 0; 
 	
