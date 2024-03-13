@@ -17,6 +17,7 @@ limitations under the License.
 package filters;
 
 import java.util.ArrayDeque;
+import java.util.Arrays;
 import java.util.Queue;
 
 public class Iterator  {
@@ -25,6 +26,7 @@ public class Iterator  {
 	long index;
 	long bucket_index;
 	long fingerprint;
+	long[] payload;
 	Queue<Long> s;
 
 	Iterator(QuotientFilter new_qf) {
@@ -34,6 +36,7 @@ public class Iterator  {
 		index = 0;
 		bucket_index = -1;
 		fingerprint = -1;
+		payload = new long[]{};
 	}
 	
 	void clear() {
@@ -49,7 +52,9 @@ public class Iterator  {
 			return false;
 		}	
 		
-		long slot = qf.get_slot(index);
+		long[] slots = qf.get_slot(index);
+		long slot = slots[slots.length - 1];
+		payload = Arrays.copyOfRange(slots, 0, slots.length - 1);
 		boolean occupied = (slot & 1) != 0;
 		boolean continuation = (slot & 2) != 0;
 		boolean shifted = (slot & 4) != 0;
@@ -60,7 +65,9 @@ public class Iterator  {
 			if (index == qf.get_logical_num_slots_plus_extensions()) {
 				return false;
 			}	
-			slot = qf.get_slot(index);
+			slots = qf.get_slot(index);
+			slot = slots[slots.length - 1];
+			payload = Arrays.copyOfRange(slots, 0, slots.length - 1);
 			occupied = (slot & 1) != 0;
 			continuation = (slot & 2) != 0;
 			shifted = (slot & 4) != 0;
@@ -94,6 +101,4 @@ public class Iterator  {
 	void print() {
 		System.out.println("original slot: " + index + "  " + bucket_index);
 	}
-
-
 }

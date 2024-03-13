@@ -65,8 +65,8 @@ public class DuplicatingChainedInfiniFilter extends ChainedInfiniFilter implemen
 		lazy_new_deletes = val;
 	}
 	
-	public DuplicatingChainedInfiniFilter(int power_of_two, int bits_per_entry, boolean _lazy_updates, int new_num_expansions_estimate) {
-		super(power_of_two, bits_per_entry);
+	public DuplicatingChainedInfiniFilter(int power_of_two, int bits_per_entry, boolean _lazy_updates, int new_num_expansions_estimate, int payload_size) {
+		super(power_of_two, bits_per_entry, payload_size);
 		set_deleted_void_fingerprint();
 		deleted_void_entries = new ArrayList<>(100000);
 		rejuvenated_void_entries = new ArrayList<>();
@@ -98,10 +98,11 @@ public class DuplicatingChainedInfiniFilter extends ChainedInfiniFilter implemen
 		//pretty_print();
 		//super.handle_empty_fingerprint(bucket_index, insertee);
 		long bucket1 = bucket_index;
+		long[] payload = insertee.get_payload(bucket_index);
 		long bucket_mask = 1L << power_of_two_size; 		// setting this bit to the proper offset of the slot address field
 		long bucket2 = bucket1 | bucket_mask;	// adding the pivot bit to the slot address field
-		insertee.insert(empty_fingerprint, bucket1, false);
-		insertee.insert(empty_fingerprint, bucket2, false);
+		insertee.insert(empty_fingerprint, bucket1, false, payload);
+		insertee.insert(empty_fingerprint, bucket2, false, payload);
 		num_physical_entries++;
 		num_void_entries += 1;
 		//System.out.println("void splitting " + bucket1 + "  " + bucket2 );
@@ -396,7 +397,7 @@ public class DuplicatingChainedInfiniFilter extends ChainedInfiniFilter implemen
 		long large_hash = get_hash(input);
 		long slot_index = get_slot_index(large_hash);
 		long fp_long = gen_fingerprint(large_hash);
-		
+
 		/*if (slot_index >= get_logical_num_slots()) {
 			return false;
 		}
@@ -408,6 +409,7 @@ public class DuplicatingChainedInfiniFilter extends ChainedInfiniFilter implemen
 		long run_start_index = find_run_start(slot_index);
 		long matching_fingerprint_index = decide_which_fingerprint_to_delete(run_start_index, fp_long);
 
+		long[] payload = get_payload(matching_fingerprint_index);
 		/*if (matching_fingerprint_index == -1) {
 			// we didn't find a matching fingerprint
 			return false;
@@ -415,7 +417,7 @@ public class DuplicatingChainedInfiniFilter extends ChainedInfiniFilter implemen
 		
 		long matching_fingerprint = get_fingerprint(matching_fingerprint_index);
 		
-		swap_fingerprints(matching_fingerprint_index, fp_long);
+		swap_fingerprints(matching_fingerprint_index, fp_long, payload);
 		
 		if (matching_fingerprint != empty_fingerprint) {
 			return true;
@@ -434,28 +436,28 @@ public class DuplicatingChainedInfiniFilter extends ChainedInfiniFilter implemen
 		return success;
 	}
 	
-	public long delete(long input) {
+	public long[] delete(long input) {
 		long large_hash = get_hash(input);
 		long slot_index = get_slot_index(large_hash);
 		long fp_long = gen_fingerprint(large_hash);
-		
+
 		if (slot_index >= get_logical_num_slots()) {
-			return -1;
+			return new long[]{-1};
 		}
 		// if the run doesn't exist, the key can't have possibly been inserted
 		boolean does_run_exist = is_occupied(slot_index);
 		if (!does_run_exist) {
-			return -1;
+			return new long[]{-1};
 		}
 		long run_start_index = find_run_start(slot_index);
 		long matching_fingerprint_index = find_largest_matching_fingerprint_in_run(run_start_index, fp_long);
 		
 		if (matching_fingerprint_index == -1) {
-			return -1;
+			return new long[]{-1};
 		}
 		
 		long matching_fingerprint = get_fingerprint(matching_fingerprint_index);
-
+		long[] payload = get_payload(matching_fingerprint_index);
 		boolean success = true;
 		
 		if (matching_fingerprint == empty_fingerprint) {
@@ -512,7 +514,7 @@ public class DuplicatingChainedInfiniFilter extends ChainedInfiniFilter implemen
 			success = delete_duplicates(slot_index, false);
 		}*/
 		
-		return success ? 1 : -1;
+		return success ? new long[]{-1} : new long[]{1} ;
 	}
 	
 	boolean delete_duplicates(long slot_index, boolean rejuvenation) {
@@ -536,10 +538,10 @@ public class DuplicatingChainedInfiniFilter extends ChainedInfiniFilter implemen
 		
 		long secondary_slot_index = secondary_IF.get_slot_index(slot_index);
 		long fp_long = secondary_IF.gen_fingerprint(slot_index);
-		long removed_fp = secondary_IF.delete(fp_long, secondary_slot_index);
-		if (removed_fp > -1) {
+		long[] removed_fp = secondary_IF.delete(fp_long, secondary_slot_index);
+		if (removed_fp[removed_fp.length-1] > -1) {
 			secondary_IF.num_physical_entries--;
-			if (removed_fp == empty_fingerprint) {
+			if (removed_fp[removed_fp.length-1] == empty_fingerprint) {
 				secondary_IF.num_void_entries--;
 				secondary_IF.num_distinct_void_entries--;
 			}
@@ -550,9 +552,9 @@ public class DuplicatingChainedInfiniFilter extends ChainedInfiniFilter implemen
 			long chain_slot_index = chain.get(i).get_slot_index(slot_index);
 			fp_long = chain.get(i).gen_fingerprint(slot_index);
 			removed_fp = chain.get(i).delete(fp_long, chain_slot_index);
-			if (removed_fp > -1) {
+			if (removed_fp[removed_fp.length - 1] > -1) {
 				chain.get(i).num_physical_entries--;
-				if (removed_fp == empty_fingerprint) {
+				if (removed_fp[removed_fp.length - 1] == empty_fingerprint) {
 					secondary_IF.num_void_entries--;
 					secondary_IF.num_distinct_void_entries--;
 				}

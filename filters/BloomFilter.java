@@ -52,7 +52,12 @@ public class BloomFilter extends Filter {
 	protected long _delete(long large_hash) {
 		return -1;
 	}
-	
+
+	@Override
+	protected long[] _delete_payload(long large_hash) {
+		return new long[0];
+	}
+
 	long get_target_bit(long large_hash, int hash_num) {
 		long this_hash = HashFunctions.xxhash(large_hash, hash_num);
 		return Math.abs(this_hash % num_bits);
@@ -71,6 +76,11 @@ public class BloomFilter extends Filter {
 		}
 		current_num_entries++;
 		return true;
+	}
+
+	@Override
+	protected boolean _insert_payload(long large_hash, boolean insert_only_if_no_match, long[] payload) {
+		return false;
 	}
 
 	@Override

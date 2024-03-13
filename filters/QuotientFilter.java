@@ -16,11 +16,7 @@ limitations under the License.
 
 package filters;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
+import java.util.*;
 
 import bitmap_implementations.Bitmap;
 import bitmap_implementations.QuickBitVectorWrapper;
@@ -28,8 +24,9 @@ import bitmap_implementations.QuickBitVectorWrapper;
 public class QuotientFilter extends Filter implements Cloneable {
 
 	int bitPerEntry;
-	int fingerprintLength; 
-	int power_of_two_size; 
+	int fingerprintLength;
+	int payloadSize;
+	int power_of_two_size;
 	int num_extension_slots;
 	int num_physical_entries;
 	Bitmap filter;
@@ -60,10 +57,11 @@ public class QuotientFilter extends Filter implements Cloneable {
 		return f;
 	}
 	
-	public QuotientFilter(int power_of_two, int bits_per_entry) {
+	public QuotientFilter(int power_of_two, int bits_per_entry, int payload_size) {
 		power_of_two_size = power_of_two;
 		bitPerEntry = bits_per_entry; 
 		fingerprintLength = bits_per_entry - 3;
+		payloadSize = payload_size;
 		long init_size = 1L << power_of_two;
 		
 		num_extension_slots = power_of_two * 2;
@@ -124,11 +122,14 @@ public class QuotientFilter extends Filter implements Cloneable {
 	public int get_fingerprint_length() {
 		return fingerprintLength;
 	}
-	
-	QuotientFilter(int power_of_two, int bits_per_entry, Bitmap bitmap) {
+
+	// grava
+	QuotientFilter(int power_of_two, int bits_per_entry, Bitmap bitmap, int payload_size) {
+
 		power_of_two_size = power_of_two;
 		bitPerEntry = bits_per_entry; 
 		fingerprintLength = bits_per_entry - 3;
+		payloadSize = payload_size;
 		filter = bitmap;
 		num_extension_slots = power_of_two * 2;
 
@@ -206,7 +207,7 @@ public class QuotientFilter extends Filter implements Cloneable {
 	
 	public long get_physcial_num_slots() {
 		long bits = filter.size();
-		return bits / bitPerEntry;
+		return bits / (bitPerEntry + payloadSize);
 	}
 	
 	// returns the number of physical slots in the filter (including the extention/buffer slots at the end)
@@ -229,9 +230,23 @@ public class QuotientFilter extends Filter implements Cloneable {
 	
 	// sets the fingerprint for a given slot index
 	void set_fingerprint(long index, long fingerprint) {
-		filter.setFromTo(index * bitPerEntry + 3, (long)index * bitPerEntry + 3 + fingerprintLength, fingerprint);
+		filter.setFromTo(index * (bitPerEntry + payloadSize) + 3, (long)index * (bitPerEntry + payloadSize) + 3 + fingerprintLength, fingerprint);
 	}
-	
+
+	// sets the payload for a given slot index
+
+	void set_payload(long index, long[] payload) {
+		long startPosition = index * (bitPerEntry + payloadSize) + 3 + fingerprintLength;
+		long elementSizeInBits = Long.SIZE;
+		for (long element : payload) {
+			if (elementSizeInBits > payloadSize) {
+				elementSizeInBits = payloadSize;
+			}
+			filter.setFromTo(startPosition, startPosition + elementSizeInBits, element);
+			startPosition += elementSizeInBits;
+		}
+	}
+
 	// print a nice representation of the filter that can be understood. 
 	// if vertical is on, each line will represent a slot
 	public String get_pretty_str(boolean vertical) {
@@ -271,14 +286,31 @@ public class QuotientFilter extends Filter implements Cloneable {
 
 	// return a fingerprint in a given slot index
 	long get_fingerprint(long index) {
-		return filter.getFromTo(index * bitPerEntry + 3, index * bitPerEntry + 3 + fingerprintLength);
+		return filter.getFromTo(index * (bitPerEntry + payloadSize) + 3, index * (bitPerEntry + payloadSize)+ 3 + fingerprintLength);
 	}
-	
+	long[] get_payload(long index) {
+		int numberOfElements =  (int) Math.ceil((double) payloadSize / Long.SIZE);
+		long[] payload = new long[numberOfElements];
+
+		long startPosition = index * (bitPerEntry + payloadSize) + 3 + fingerprintLength;
+		for (int i = 0; i < numberOfElements; i++) {
+			long retrievedData = filter.getFromTo(startPosition, startPosition + Long.SIZE);
+			payload[i] = retrievedData;
+			startPosition += Long.SIZE;
+		}
+
+		return payload;
+	}
+
 	// return an entire slot representation, including metadata flags and fingerprint
-	long get_slot(long index) {
-		return filter.getFromTo(index * bitPerEntry, (index + 1) * bitPerEntry);
+	long[] get_slot(long index) {
+		long bitsAndFingerprint = filter.getFromTo(index * (bitPerEntry), (index + 1) * (bitPerEntry));
+		long[] payload = get_payload(index);
+		long[] result = Arrays.copyOf(payload, payload.length + 1);
+		result[payload.length] = bitsAndFingerprint;
+		return result;
 	}
-	
+
 	// compare a fingerprint input to the fingerprint in some slot index
 	protected boolean compare(long index, long fingerprint) {
 		return get_fingerprint(index) == fingerprint;
@@ -295,7 +327,7 @@ public class QuotientFilter extends Filter implements Cloneable {
 	public void print_filter_summary() {	
 		long num_entries = get_num_occupied_slots(false);
 		long slots = (1L << power_of_two_size) + num_extension_slots;
-		long num_bits = slots * bitPerEntry;
+		long num_bits = slots * (bitPerEntry + payloadSize);
 		System.out.println("slots:\t" + slots);
 		System.out.println("entries:\t" + num_entries);
 		System.out.println("num_physical_entries:\t" + num_physical_entries);
@@ -311,27 +343,27 @@ public class QuotientFilter extends Filter implements Cloneable {
 	}
 	
 	boolean is_occupied(long index) {
-		return filter.get(index * bitPerEntry);
+		return filter.get(index * (bitPerEntry + payloadSize));
 	}
 	
 	boolean is_continuation(long index) {
-		return filter.get(index * bitPerEntry + 1);
+		return filter.get(index * (bitPerEntry + payloadSize) + 1);
 	}
 	
 	boolean is_shifted(long index) {
-		return filter.get(index * bitPerEntry + 2);
+		return filter.get(index * (bitPerEntry + payloadSize) + 2);
 	}
 	
 	void set_occupied(long index, boolean val) {
-		filter.set(index * bitPerEntry, val);
+		filter.set(index * (bitPerEntry + payloadSize), val);
 	}
 	
 	void set_continuation(long index, boolean val) {
-		filter.set(index * bitPerEntry + 1, val);
+		filter.set(index * (bitPerEntry + payloadSize) + 1, val);
 	}
 	
 	void set_shifted(long index, boolean val) {
-		filter.set(index * bitPerEntry + 2, val);
+		filter.set(index * (bitPerEntry + payloadSize) + 2, val);
 	}
 	
 	boolean is_slot_empty(long index) {
@@ -433,12 +465,16 @@ public class QuotientFilter extends Filter implements Cloneable {
 	}
 	
 	// Swaps the fingerprint in a given slot with a new one. Return the pre-existing fingerprint
-	long swap_fingerprints(long index, long new_fingerprint) {
+	long[] swap_fingerprints(long index, long new_fingerprint, long[] new_payload) {
 		long existing = get_fingerprint(index);
+		long[] existing_payload = get_payload(index);
 		set_fingerprint(index, new_fingerprint);
-		return existing;
+		set_payload(index, new_payload);
+		long[] result = Arrays.copyOf(existing_payload, existing_payload.length + 1);
+		result[existing_payload.length] = existing;
+		return result;
 	}
-	
+
 	// finds the first empty slot after the given slot index
 	long find_first_empty_slot(long index) {
 		while (!is_slot_empty(index)) {
@@ -468,7 +504,7 @@ public class QuotientFilter extends Filter implements Cloneable {
 		return index;
 	}
 	
-	boolean insert_new_run(long canonical_slot, long long_fp) {
+	boolean insert_new_run(long canonical_slot, long long_fp, long[] payload) {
 		long first_empty_slot = find_first_empty_slot(canonical_slot); // finds the first empty slot to the right of the canonical slot that is empty
 		long preexisting_run_start_index = find_run_start(canonical_slot); // scans the cluster leftwards and then to the right until reaching our run's would be location
 		long start_of_this_new_run = find_new_run_location(preexisting_run_start_index); // If there is already a run at the would-be location, find its end and insert the new run after it
@@ -484,7 +520,8 @@ public class QuotientFilter extends Filter implements Cloneable {
 		// if the slot was initially empty, we can just terminate, as there is nothing to push to the right
 		if (slot_initially_empty) {
 			set_fingerprint(start_of_this_new_run, long_fp);
-			if (start_of_this_new_run == last_empty_slot) {  
+			set_payload(start_of_this_new_run, payload);
+			if (start_of_this_new_run == last_empty_slot) {
 				last_empty_slot = find_backward_empty_slot(last_cluster_start);
 			}
 			num_physical_entries++;
@@ -502,7 +539,10 @@ public class QuotientFilter extends Filter implements Cloneable {
 			}
 			
 			is_this_slot_empty = is_slot_empty(current_index);
-			long_fp = swap_fingerprints(current_index, long_fp);
+			long[] long_arr = swap_fingerprints(current_index, long_fp, payload);
+		    long_fp = long_arr[long_arr.length - 1];
+			payload = Arrays.copyOfRange(long_arr, 0, long_arr.length - 1);
+
 
 			if (current_index > start_of_this_new_run) {
 				set_shifted(current_index, true);
@@ -522,13 +562,13 @@ public class QuotientFilter extends Filter implements Cloneable {
 		return true; 
 	}
 	
-	boolean insert(long long_fp, long index, boolean insert_only_if_no_match) {
+	boolean insert(long long_fp, long index, boolean insert_only_if_no_match, long[] payload) {
 		if (index > last_empty_slot) {
 			return false;
 		}
 		boolean does_run_exist = is_occupied(index);
 		if (!does_run_exist) {
-			boolean val = insert_new_run(index, long_fp);
+			boolean val = insert_new_run(index, long_fp, payload);
 			return val;
 		}
 		
@@ -539,11 +579,11 @@ public class QuotientFilter extends Filter implements Cloneable {
 				return false; 
 			}
 		} 
-		return insert_fingerprint_and_push_all_else(long_fp, run_start_index);
+		return insert_fingerprint_and_push_all_else(long_fp, run_start_index, payload);
 	}
 	
 	// insert an fingerprint as the first fingerprint of the new run and push all other entries in the cluster to the right.
-	boolean insert_fingerprint_and_push_all_else(long long_fp, long run_start_index) {
+	boolean insert_fingerprint_and_push_all_else(long long_fp, long run_start_index, long[] payload) {
 		long current_index = run_start_index;
 		boolean is_this_slot_empty;
 		boolean finished_first_run = false;
@@ -560,13 +600,17 @@ public class QuotientFilter extends Filter implements Cloneable {
 			if (current_index > run_start_index && !finished_first_run && !is_continuation(current_index)) {	
 				finished_first_run = true;
 				set_continuation(current_index, true);
-				long_fp = swap_fingerprints(current_index, long_fp);
+				long[] long_arr = swap_fingerprints(current_index, long_fp, payload);
+				long_fp = long_arr[long_arr.length - 1];
+				payload = Arrays.copyOfRange(long_arr, 0, long_arr.length - 1);
 			}
 			else if (finished_first_run) {			
 				boolean current_continuation = is_continuation(current_index);
 				set_continuation(current_index, temp_continuation);
 				temp_continuation = current_continuation;
-				long_fp = swap_fingerprints(current_index, long_fp);
+				long[] long_arr = swap_fingerprints(current_index, long_fp, payload);
+				long_fp = long_arr[long_arr.length - 1];
+				payload = Arrays.copyOfRange(long_arr, 0, long_arr.length - 1);
 			}
 			if (current_index == last_empty_slot) {  
 				last_empty_slot = find_backward_empty_slot(last_cluster_start);
@@ -661,14 +705,14 @@ public class QuotientFilter extends Filter implements Cloneable {
 		} while (true);
 	}
 	
-	long delete(long fingerprint, long canonical_slot) {
+	long[] delete(long fingerprint, long canonical_slot) {
 		if (canonical_slot >= get_logical_num_slots()) {
-			return -1;
+			return new long[]{-1};
 		}
 		// if the run doesn't exist, the key can't have possibly been inserted
 		boolean does_run_exist = is_occupied(canonical_slot);
 		if (!does_run_exist) {
-			return -1;
+			return new long[]{-1};
 		}
 		long run_start_index = find_run_start(canonical_slot);
 		
@@ -676,15 +720,16 @@ public class QuotientFilter extends Filter implements Cloneable {
 		
 		if (matching_fingerprint_index == -1) {
 			// we didn't find a matching fingerprint
-			return -1;
+			return new long[]{-1};
 		}
 		
 		long removed_fp = get_fingerprint(matching_fingerprint_index);
+		long[] payload = get_payload(matching_fingerprint_index);
 
 
 		boolean success = delete(fingerprint, canonical_slot, run_start_index, matching_fingerprint_index);
 		
-		return success ? removed_fp : -1;
+		return success ? payload: new long[]{-1};
 		
 	}
 
@@ -728,7 +773,7 @@ public class QuotientFilter extends Filter implements Cloneable {
 		max_entries_before_full = (long)(Math.pow(2, power_of_two_size) * fullness_threshold);
 	}
 	
-	protected boolean _insert(long large_hash, boolean insert_only_if_no_match) {
+	protected boolean _insert_payload(long large_hash, boolean insert_only_if_no_match, long[] payload) {
 		if (is_full) {
 			return false;
 		}
@@ -741,7 +786,7 @@ public class QuotientFilter extends Filter implements Cloneable {
 		System.out.println(slot_index + "  " + fingerprint );
 		System.out.println(); */
 		
-		boolean success = insert(fingerprint, slot_index, false);
+		boolean success = insert(fingerprint, slot_index, false, payload);
 		/*if (!success) {
 			System.out.println("insertion failure");
 			System.out.println(input + "\t" + slot_index + "\t" + get_fingerprint_str(fingerprint, fingerprintLength));
@@ -757,14 +802,25 @@ public class QuotientFilter extends Filter implements Cloneable {
 		return success; 
 	}
 
+
+	@Override
 	protected long _delete(long large_hash) {
+		throw new Error("An error occurred");
+    }
+
+	protected long[] _delete_payload(long large_hash) {
 		long slot_index = get_slot_index(large_hash);
 		long fp_long = gen_fingerprint(large_hash);
-		long removed_fp = delete(fp_long, slot_index);
-		if (removed_fp > -1) {
+		long[] removed_fp = delete(fp_long, slot_index);
+		if (removed_fp[removed_fp.length - 1] > -1) {
 			num_physical_entries--;
 		}
-		return removed_fp; 
+		return removed_fp;
+	}
+
+	@Override
+	protected boolean _insert(long large_hash, boolean insert_only_if_no_match) {
+		return false;
 	}
 
 	protected boolean _search(long large_hash) {

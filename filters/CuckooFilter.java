@@ -78,7 +78,12 @@ public class CuckooFilter extends Filter {
 		removed = remove(bucket2, fingerprint);
 		return removed;
 	}
-	
+
+	@Override
+	protected long[] _delete_payload(long large_hash) {
+		return new long[0];
+	}
+
 	// return the index of an empty cell in the bucket, or -1 if there are no empty cells
 	long remove(long bucket, long fingerprint) {
 		long starting_bit = bucket * bucket_size * bits_per_entry;
@@ -172,7 +177,12 @@ public class CuckooFilter extends Filter {
 		return replacement_algorithm(bucket1, fingerprint, 0);
 
 	}
-	
+
+	@Override
+	protected boolean _insert_payload(long large_hash, boolean insert_only_if_no_match, long[] payload) {
+		return false;
+	}
+
 	// return 0 if successful, and return fingerprint of element there was no space for otherwise
 	boolean replacement_algorithm(int original_bucket, long fingerprint, int swaps) {
 		long second_large_hash = HashFunctions.xxhash(fingerprint);

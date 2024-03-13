@@ -34,8 +34,8 @@ public class BasicInfiniFilter extends QuotientFilter implements Cloneable {
 		fprStyle = val;
 	}
 	
-	BasicInfiniFilter(int power_of_two, int bits_per_entry) {
-		super(power_of_two, bits_per_entry);
+	BasicInfiniFilter(int power_of_two, int bits_per_entry, int payload_size) {
+		super(power_of_two, bits_per_entry, payload_size);
 		max_entries_before_full = (long)(Math.pow(2, power_of_two_size) * fullness_threshold);
 		set_empty_fingerprint(fingerprintLength);
 	}
@@ -137,7 +137,8 @@ public class BasicInfiniFilter extends QuotientFilter implements Cloneable {
 		if (smallest_index == -1) {
 			return false;
 		}
-		swap_fingerprints(smallest_index, fingerprint);
+		long[] payload = get_payload(smallest_index);
+		swap_fingerprints(smallest_index, fingerprint, payload);
 		return true; 
 	}
 
@@ -234,7 +235,7 @@ public class BasicInfiniFilter extends QuotientFilter implements Cloneable {
 		}
 	
 		
-		QuotientFilter new_qf = new QuotientFilter(power_of_two_size + 1, new_fingerprint_size + 3);
+		QuotientFilter new_qf = new QuotientFilter(power_of_two_size + 1, new_fingerprint_size + 3, payloadSize);
 		Iterator it = new Iterator(this);		
 		long unary_mask = prep_unary_mask(fingerprintLength, new_fingerprint_size);
 		
@@ -247,13 +248,14 @@ public class BasicInfiniFilter extends QuotientFilter implements Cloneable {
 		while (it.next()) {
 			long bucket = it.bucket_index;
 			long fingerprint = it.fingerprint;
+			long[] payload = it.payload;
 			if (it.fingerprint != current_empty_fingerprint) {
 				long pivot_bit = (1 & fingerprint);	// getting the bit of the fingerprint we'll be sacrificing 
 				long bucket_mask = pivot_bit << power_of_two_size; // setting this bit to the proper offset of the slot address field
 				long updated_bucket = bucket | bucket_mask;	 // adding the pivot bit to the slot address field
 				long chopped_fingerprint = fingerprint >> 1; // getting rid of this pivot bit from the fingerprint 
 				long updated_fingerprint = chopped_fingerprint | unary_mask;				
-				new_qf.insert(updated_fingerprint, updated_bucket, false);
+				new_qf.insert(updated_fingerprint, updated_bucket, false, payload);
 				
 				//print_long_in_binary(updated_fingerprint, 32);
 				if (updated_fingerprint == empty_fingerprint) {
@@ -310,7 +312,7 @@ public class BasicInfiniFilter extends QuotientFilter implements Cloneable {
 		}*/
 		//System.out.println("FP size: " + new_fingerprint_size);
 		int new_fingerprint_size = fingerprintLength + 1;
-		QuotientFilter new_qf = new QuotientFilter(power_of_two_size, new_fingerprint_size + 3);
+		QuotientFilter new_qf = new QuotientFilter(power_of_two_size, new_fingerprint_size + 3, payloadSize);
 		Iterator it = new Iterator(this);		
 		long unary_mask = prep_unary_mask(fingerprintLength, new_fingerprint_size - 1 );
 		unary_mask <<= 1;
@@ -324,9 +326,10 @@ public class BasicInfiniFilter extends QuotientFilter implements Cloneable {
 		while (it.next()) {
 			long bucket = it.bucket_index;
 			long fingerprint = it.fingerprint;
-			
+			long[] payload = it.payload;
+
 			long updated_fingerprint = fingerprint | unary_mask;				
-			new_qf.insert(updated_fingerprint, bucket, false);
+			new_qf.insert(updated_fingerprint, bucket, false, payload);
 
 			//print_long_in_binary(updated_fingerprint, 32);
 			//if (updated_fingerprint == empty_fingerprint) {
