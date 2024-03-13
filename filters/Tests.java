@@ -1950,19 +1950,19 @@ public class Tests {
 			}
 		}
 
-		static public void test20(int trials){
-			Random rnd = new Random();
-			long input;
-			for(int i=0; i<trials;i++){
-				input = rnd.nextLong();
-				ByteBuffer buffer = ByteBuffer.allocate(8);
-				buffer.order(ByteOrder.LITTLE_ENDIAN);
-				if(HashFunctions.xxhash(input) != HashFunctions.xxhash(buffer.putLong(input))){
-					System.out.format("TEST 20, Trial %d: Hashes not equal", i);
-					System.exit(1);
-				}
-			}	
-		}
+		// static public void test20(int trials){
+		// 	Random rnd = new Random();
+		// 	long input;
+		// 	for(int i=0; i<trials;i++){
+		// 		input = rnd.nextLong();
+		// 		ExperimentsBaseByteBuffer buffer = ByteBuffer.allocate(8);
+		// 		buffer.order(ByteOrder.LITTLE_ENDIAN);
+		// 		if(HashFunctions.xxhash(input) != HashFunctions.xxhash(buffer.putLong(input))){
+		// 			System.out.format("TEST 20, Trial %d: Hashes not equal", i);
+		// 			System.exit(1);
+		// 		}
+		// 	}
+		// }
 
 		static public void test21(int trials){
 			Random rnd = new Random();

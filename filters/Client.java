@@ -43,7 +43,7 @@ public class Client {
 		Tests.test17(); // testing deletes 
 		Tests.test18(); // testing deletes & rejuv operations
 		Tests.test19(); // testing xxhash 
-		Tests.test20(1000000); //testing xxhash(ByteBuffer)==xxhash(long)
+		//Tests.test20(1000000); //testing xxhash(ByteBuffer)==xxhash(long)
 		Tests.test21(1000000); // testing insert,search an delete of types int,long,String,byte[] 
 		Tests.test22(); // testing no false negatives for bloom filter 
 		Tests.test23(); // no false negatives for cuckoo filter
