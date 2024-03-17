@@ -63,10 +63,10 @@ public class QuotientFilter extends Filter implements Cloneable {
 		fingerprintLength = bits_per_entry - 3;
 		payloadSize = payload_size;
 		long init_size = 1L << power_of_two;
-		
+
+		// grava what is it?
 		num_extension_slots = power_of_two * 2;
-		
-		filter = make_filter(init_size, bits_per_entry);
+		filter = make_filter(init_size, bits_per_entry + payload_size);
 		
 		fullness_threshold = 0.8;
 		max_entries_before_full = (int) (init_size * fullness_threshold);
@@ -116,7 +116,7 @@ public class QuotientFilter extends Filter implements Cloneable {
 	}
 	
 	Bitmap make_filter(long init_size, int bits_per_entry) {
-		return new QuickBitVectorWrapper(bits_per_entry,  init_size + num_extension_slots);
+		return new QuickBitVectorWrapper(bits_per_entry, init_size + num_extension_slots);
 	}
 	
 	public int get_fingerprint_length() {
@@ -286,7 +286,7 @@ public class QuotientFilter extends Filter implements Cloneable {
 
 	// return a fingerprint in a given slot index
 	long get_fingerprint(long index) {
-		return filter.getFromTo(index * (bitPerEntry + payloadSize) + 3, index * (bitPerEntry + payloadSize)+ 3 + fingerprintLength);
+		return filter.getFromTo(index * (bitPerEntry + payloadSize) + 3, index * (bitPerEntry + payloadSize) + 3 + fingerprintLength);
 	}
 	long[] get_payload(long index) {
 		int numberOfElements =  (int) Math.ceil((double) payloadSize / Long.SIZE);

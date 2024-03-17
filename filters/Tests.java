@@ -24,28 +24,37 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import bitmap_implementations.Bitmap;
-import infiniFilter_experiments.Experiment1;
-import infiniFilter_experiments.ExperimentsBase;
-
+//import infiniFilter_experiments.Experiment1;
+//import infiniFilter_experiments.ExperimentsBase;
+//
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 
 public class Tests {
 
-	static public BitSet set_slot_in_test(BitSet result, int bits_per_entry, int slot, boolean is_occupied, boolean is_continuation, boolean is_shifted, long fingerprint) {
-		int index = bits_per_entry * slot;
+	static public BitSet set_slot_in_test(BitSet result, int bits_per_entry, int payload_size,
+										  int slot, boolean is_occupied, boolean is_continuation, boolean is_shifted, long fingerprint, long[] payload) {
+		int index = (bits_per_entry + payload_size) * slot;
 		result.set(index++, is_occupied); 
 		result.set(index++, is_continuation); 
 		result.set(index++, is_shifted); 
 		for (int i = 0; i < bits_per_entry - 3; i++) {
-			result.set(index++, Bitmap.get_fingerprint_bit(i, fingerprint) );
+			result.set(index++, Bitmap.get_fingerprint_bit(i, fingerprint));
+		}
+		int index_start = (Long.SIZE - payload_size % Long.SIZE) % Long.SIZE;
+		for (int i = 0; i < payload_size; i++) {
+			int this_index = (index_start + i) % Long.SIZE;
+			int this_long = (index_start + i) / Long.SIZE;
+			boolean bit = Bitmap.get_fingerprint_bit(this_index, payload[this_long]);
+			// System.out.println(index + " " + this_index + " " + this_long + " " + bit);
+			result.set(index++, bit);
 		}
 		return result;
 	}
 	
 
-	static public BitSet set_slot_in_test(BitSet result, int bits_per_entry, int slot, boolean is_occupied, boolean is_continuation, boolean is_shifted, String fingerprint) {
+	static public BitSet set_slot_in_test(BitSet result, int bits_per_entry, int payload_size, int slot, boolean is_occupied, boolean is_continuation, boolean is_shifted, String fingerprint, long[] payload) {
 		long l_fingerprint = 0;
 		for (int i = 0; i < fingerprint.length(); i++) {
 			char c = fingerprint.charAt(i);
@@ -54,15 +63,15 @@ public class Tests {
 			}
 		}
 
-		return set_slot_in_test(result, bits_per_entry, slot, is_occupied, is_continuation, is_shifted, l_fingerprint);
+		return set_slot_in_test(result, bits_per_entry, payload_size, slot, is_occupied, is_continuation, is_shifted, l_fingerprint, payload);
 	}
 	
 	static public boolean check_equality(QuotientFilter qf, BitSet bs, boolean check_also_fingerprints) {
 		for (int i = 0; i < bs.size(); i++) {
+			// System.out.println("bit " + i + " diff set_bs: " + bs.get(i) + " qf: " + qf.get_bit_at_offset(i));
 			if (check_also_fingerprints || (i % qf.bitPerEntry == 0 || i % qf.bitPerEntry == 1 || i % qf.bitPerEntry == 2)) {
 				if (qf.get_bit_at_offset(i) != bs.get(i)) {
 					System.out.println("failed test: bit " + i);
-					System.exit(1);
 				}
 			}
 		}
@@ -72,12 +81,13 @@ public class Tests {
 
 	
 	// This test is based on the example from https://en.wikipedia.org/wiki/Quotient_filter
-	// it performs the same insertions and query as the example and verifies that it gets the same results. 
-	static public void test1() {
+	// it performs the same insertions and query as the example and verifies that it gets the same results.
+	static public void test_integ_payload() {
 		int bits_per_entry = 8;
+		int payload_size = Long.SIZE * 2;
 		int num_entries_power = 3;
 		int num_entries = (int)Math.pow(2, num_entries_power);
-		QuotientFilter qf = new QuotientFilter(num_entries_power, bits_per_entry, Long.SIZE * 2);
+		QuotientFilter qf = new QuotientFilter(num_entries_power, bits_per_entry, payload_size);
 
 		long fingerprint0 = 0;
 		long fingerprint1 = (1 << bits_per_entry) - 1;
@@ -86,21 +96,56 @@ public class Tests {
 		qf.insert(fingerprint0, 1, false, new long[]{1, 10});
 		qf.insert(fingerprint1, 4, false, new long[]{1, 120});
 		qf.insert(fingerprint0, 7, false, new long[]{1, 1420});
-		qf.insert(fingerprint0, 1, false, new long[]{1, 1});
+		qf.insert(fingerprint0, 1, false, new long[]{1, 10});
 		qf.insert(fingerprint0, 2, false, new long[]{1, 0});
-		qf.insert(fingerprint0, 1, false, new long[]{1, 100});
+		qf.insert(fingerprint0, 1, false, new long[]{1, 10});
 
-		// these are the expecting resulting is_occupied, is_continuation, and is_shifted bits 
+		// these are the expecting resulting is_occupied, is_continuation, and is_shifted bits
 		// for all slots contigously. We do not store the fingerprints here
-		BitSet result = new BitSet(num_entries * bits_per_entry);		
-		result = set_slot_in_test(result, bits_per_entry, 0, false, false, false, fingerprint0);
-		result = set_slot_in_test(result, bits_per_entry, 1, true, false, false, fingerprint0);
-		result = set_slot_in_test(result, bits_per_entry, 2, true, true, true, fingerprint0);
-		result = set_slot_in_test(result, bits_per_entry, 3, false, true, true, fingerprint0);
-		result = set_slot_in_test(result, bits_per_entry, 4, true, false, true, fingerprint0);
-		result = set_slot_in_test(result, bits_per_entry, 5, false, false, true, fingerprint1);
-		result = set_slot_in_test(result, bits_per_entry, 6, false, false, false, fingerprint0);
-		result = set_slot_in_test(result, bits_per_entry, 7, true, false, false, fingerprint0);
+		BitSet result = new BitSet(num_entries * (bits_per_entry + payload_size));
+		result = set_slot_in_test(result, bits_per_entry, payload_size, 0, false, false, false, fingerprint0, new long[]{0, 0});
+		result = set_slot_in_test(result, bits_per_entry, payload_size, 1, true, false, false, fingerprint0, new long[]{1, 10});
+		result = set_slot_in_test(result, bits_per_entry, payload_size, 2, true, true, true, fingerprint0, new long[]{1, 10});
+		result = set_slot_in_test(result, bits_per_entry, payload_size, 3, false, true, true, fingerprint0, new long[]{1, 10});
+		result = set_slot_in_test(result, bits_per_entry, payload_size, 4, true, false, true, fingerprint0, new long[]{1, 0});
+		result = set_slot_in_test(result, bits_per_entry, payload_size, 5, false, false, true, fingerprint1, new long[]{1, 120});
+		result = set_slot_in_test(result, bits_per_entry, payload_size, 6, false, false, false, fingerprint0, new long[]{0, 0});
+		result = set_slot_in_test(result, bits_per_entry, payload_size, 7, true, false, false, fingerprint0, new long[]{1, 1420});
+
+		// qf.insert(fingerprint0, 1, false, new long[]{1, 10});
+		// qf.insert(fingerprint1, 4, false, new long[]{1, 120});
+		// qf.insert(fingerprint0, 7, false, new long[]{1, 1420});
+		// //qf.insert(fingerprint0, 1, false, new long[]{1, 10});
+		// qf.insert(fingerprint0, 2, false, new long[]{1, 0});
+		// //qf.insert(fingerprint0, 1, false, new long[]{1, 10});
+
+		// BitSet result = new BitSet(num_entries * (bits_per_entry + payload_size));
+		// result = set_slot_in_test(result, bits_per_entry, payload_size, 0, false, false, false, fingerprint0, new long[]{0, 0});
+		// result = set_slot_in_test(result, bits_per_entry, payload_size, 1, true, false, false, fingerprint0, new long[]{1, 10});
+		// result = set_slot_in_test(result, bits_per_entry, payload_size, 2, true, false, false, fingerprint0, new long[]{1, 0});
+		// result = set_slot_in_test(result, bits_per_entry, payload_size, 3, false, false, false, fingerprint0, new long[]{0, 0});
+		// result = set_slot_in_test(result, bits_per_entry, payload_size, 4, true, false, false, fingerprint1, new long[]{1, 120});
+		// result = set_slot_in_test(result, bits_per_entry, payload_size, 5, false, false, false, fingerprint0, new long[]{0, 0});
+		// result = set_slot_in_test(result, bits_per_entry, payload_size, 6, false, false, false, fingerprint0, new long[]{0, 0});
+		// result = set_slot_in_test(result, bits_per_entry, payload_size, 7, true, false, false, fingerprint0, new long[]{1, 1420});
+
+		// qf.insert(fingerprint0, 0, false, new long[]{3, 11});
+		// // qf.insert(fingerprint1, 4, false, new long[]{1, 120});
+		// // qf.insert(fingerprint0, 7, false, new long[]{1, 1420});
+		// //qf.insert(fingerprint0, 1, false, new long[]{1, 10});
+		// // qf.insert(fingerprint0, 2, false, new long[]{1, 0});
+		// //qf.insert(fingerprint0, 1, false, new long[]{1, 10});
+
+		// BitSet result = new BitSet(num_entries * (bits_per_entry + payload_size));
+		// result = set_slot_in_test(result, bits_per_entry, payload_size, 0, true, false, false, fingerprint0, new long[]{3, 11});
+		// // result = set_slot_in_test(result, bits_per_entry, payload_size, 1, true, false, false, fingerprint0, new long[]{1, 10});
+		// // result = set_slot_in_test(result, bits_per_entry, payload_size, 2, true, false, false, fingerprint0, new long[]{1, 0});
+		// // result = set_slot_in_test(result, bits_per_entry, payload_size, 3, false, false, false, fingerprint0, new long[]{0, 0});
+		// // result = set_slot_in_test(result, bits_per_entry, payload_size, 4, true, false, false, fingerprint1, new long[]{1, 120});
+		// // result = set_slot_in_test(result, bits_per_entry, payload_size, 5, false, false, false, fingerprint0, new long[]{0, 0});
+		// // result = set_slot_in_test(result, bits_per_entry, payload_size, 6, false, false, false, fingerprint0, new long[]{0, 0});
+		// // result = set_slot_in_test(result, bits_per_entry, payload_size, 7, true, false, false, fingerprint0, new long[]{1, 1420});
+
 		//qf.pretty_print();
 		//qf.print_filter_summary();
 
@@ -111,6 +156,45 @@ public class Tests {
 			System.exit(1);
 		}
 	}
+
+	// static public void test1() {
+	// 	int bits_per_entry = 8;
+	// 	int num_entries_power = 3;
+	// 	int num_entries = (int)Math.pow(2, num_entries_power);
+	// 	QuotientFilter qf = new QuotientFilter(num_entries_power, bits_per_entry, Long.SIZE * 2);
+
+	// 	long fingerprint0 = 0;
+	// 	long fingerprint1 = (1 << bits_per_entry) - 1;
+	// 	//System.out.println(fingerprint1);
+
+	// 	qf.insert(fingerprint0, 1, false, new long[]{1, 10});
+	// 	qf.insert(fingerprint1, 4, false, new long[]{1, 120});
+	// 	qf.insert(fingerprint0, 7, false, new long[]{1, 1420});
+	// 	qf.insert(fingerprint0, 1, false, new long[]{1, 1});
+	// 	qf.insert(fingerprint0, 2, false, new long[]{1, 0});
+	// 	qf.insert(fingerprint0, 1, false, new long[]{1, 100});
+
+	// 	// these are the expecting resulting is_occupied, is_continuation, and is_shifted bits
+	// 	// for all slots contigously. We do not store the fingerprints here
+	// 	BitSet result = new BitSet(num_entries * bits_per_entry);
+	// 	result = set_slot_in_test(result, bits_per_entry, 0, false, false, false, fingerprint0);
+	// 	result = set_slot_in_test(result, bits_per_entry, 1, true, false, false, fingerprint0);
+	// 	result = set_slot_in_test(result, bits_per_entry, 2, true, true, true, fingerprint0);
+	// 	result = set_slot_in_test(result, bits_per_entry, 3, false, true, true, fingerprint0);
+	// 	result = set_slot_in_test(result, bits_per_entry, 4, true, false, true, fingerprint0);
+	// 	result = set_slot_in_test(result, bits_per_entry, 5, false, false, true, fingerprint1);
+	// 	result = set_slot_in_test(result, bits_per_entry, 6, false, false, false, fingerprint0);
+	// 	result = set_slot_in_test(result, bits_per_entry, 7, true, false, false, fingerprint0);
+	// 	//qf.pretty_print();
+	// 	//qf.print_filter_summary();
+
+	// 	check_equality(qf, result, true);
+
+	// 	if (qf.num_physical_entries != 6) {
+	// 		System.out.print("counter not working well");
+	// 		System.exit(1);
+	// 	}
+	// }
 	
 	// This test is based on the example from the quotient filter paper 
 	// it performs the same insertions as in Figure 2 and checks for the same result

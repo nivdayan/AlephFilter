@@ -83,7 +83,7 @@ public class Chaining extends QuotientFilter {
 		bitPerEntry = fingerprintLength + 3;
 		long init_size = 1L << power_of_two_size;
 		num_extension_slots += 2;		
-		filter = make_filter(init_size, bitPerEntry);
+		filter = make_filter(init_size, bitPerEntry + payloadSize);
 		super.update(init_size);
 		max_entries_before_full = (long)(Math.pow(2, power_of_two_size) * fullness_threshold);
 		//System.out.println("expanding");

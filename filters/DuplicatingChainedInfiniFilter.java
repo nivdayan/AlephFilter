@@ -79,7 +79,7 @@ public class DuplicatingChainedInfiniFilter extends ChainedInfiniFilter implemen
 			fprStyle = FalsePositiveRateExpansion.POLYNOMIAL_SHRINK;
 			fingerprintLength = FingerprintGrowthStrategy.get_new_fingerprint_size(fingerprintLength, 0, new_num_expansions_estimate, fprStyle);
 			bitPerEntry = fingerprintLength + 3; 
-			filter = make_filter(1L << power_of_two, bitPerEntry);
+			filter = make_filter(1L << power_of_two, bitPerEntry + payloadSize);
 			empty_fingerprint = (1L << fingerprintLength) - 2 ;
 			//original_fingerprint_size = fingerprintLength;
 			//int f = original_fingerprint_size;

@@ -16,16 +16,16 @@ limitations under the License.
 
 package filters;
 
-import infiniFilter_experiments.Experiment1;
-import infiniFilter_experiments.Experiment2;
-import infiniFilter_experiments.Experiment3;
-import infiniFilter_experiments.Experiment4;
-import infiniFilter_experiments.ExperimentsBase;
+//import infiniFilter_experiments.Experiment1;
+//import infiniFilter_experiments.Experiment2;
+//import infiniFilter_experiments.Experiment3;
+//import infiniFilter_experiments.Experiment4;
+//import infiniFilter_experiments.ExperimentsBase;
 
 public class Client {
 
 	static void run_tests() {
-		Tests.test1(); // example from wikipedia
+		Tests.test_integ_payload(); // example from wikipedia
 		//Tests.test2(); // example from quotient filter paper
 		//Tests.test3(); // ensuring no false negatives
 		//Tests.test4(); // overflow test
