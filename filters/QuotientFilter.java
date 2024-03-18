@@ -237,10 +237,11 @@ public class QuotientFilter extends Filter implements Cloneable {
 
 	void set_payload(long index, long[] payload) {
 		long startPosition = index * (bitPerEntry + payloadSize) + 3 + fingerprintLength;
-		long elementSizeInBits = Long.SIZE;
-		for (long element : payload) {
-			if (elementSizeInBits > payloadSize) {
-				elementSizeInBits = payloadSize;
+		for (int i = 0; i < payload.length; i++) {
+			long element = payload[i];
+			int elementSizeInBits = Long.SIZE;
+			if (i == 0) {
+				elementSizeInBits = payloadSize % Long.SIZE;
 			}
 			filter.setFromTo(startPosition, startPosition + elementSizeInBits, element);
 			startPosition += elementSizeInBits;
@@ -293,10 +294,28 @@ public class QuotientFilter extends Filter implements Cloneable {
 		long[] payload = new long[numberOfElements];
 
 		long startPosition = index * (bitPerEntry + payloadSize) + 3 + fingerprintLength;
+		// System.out.println(startPosition + " fiuc " + bitPerEntry + " " + payloadSize + " " + fingerprintLength + " " + index);
+		// long offset = (Long.SIZE - payloadSize % Long.SIZE) % Long.SIZE;
+		// startPosition -= offset;
+		// long mask = ~0L;
+		// if (offset != 0) {
+		// 	mask = ~(-1L << (Long.SIZE - offset));
+		// }
+		// System.out.println(mask);
+		// System.out.println(startPosition);
 		for (int i = 0; i < numberOfElements; i++) {
-			long retrievedData = filter.getFromTo(startPosition, startPosition + Long.SIZE);
+			long retrievedData ;
+			int offset;
+			if (i == 0 && payloadSize % Long.SIZE != 0) {
+				offset = payloadSize % Long.SIZE;
+				retrievedData = filter.getFromTo(startPosition, startPosition + payloadSize % Long.SIZE);
+
+			} else {
+				offset = Long.SIZE;
+				retrievedData = filter.getFromTo(startPosition, startPosition + Long.SIZE);
+			}
 			payload[i] = retrievedData;
-			startPosition += Long.SIZE;
+			startPosition += offset;
 		}
 
 		return payload;
