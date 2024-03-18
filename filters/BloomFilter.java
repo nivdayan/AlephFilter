@@ -80,7 +80,7 @@ public class BloomFilter extends Filter {
 
 	@Override
 	protected boolean _insert_payload(long large_hash, boolean insert_only_if_no_match, long[] payload) {
-		return false;
+		return _insert(large_hash, insert_only_if_no_match);
 	}
 
 	@Override

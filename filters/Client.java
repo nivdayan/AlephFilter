@@ -26,10 +26,11 @@ public class Client {
 
 	static void run_tests() {
 		Tests.test_integ_payload(); // example from wikipedia
-		//Tests.test2(); // example from quotient filter paper
-		//Tests.test3(); // ensuring no false negatives
-		//Tests.test4(); // overflow test
-		//Tests.test5(); // deletion test
+		Tests.test1(); // example from wikipedia
+		Tests.test2(); // example from quotient filter paper
+		Tests.test3(); // ensuring no false negatives
+		Tests.test4(); // overflow test
+		Tests.test5(); // deletion test
 		//Tests.test6(); // iteration test 1
 		//Tests.test7(); // iteration test 2
 		//Tests.test8(); // expansion test for FingerprintShrinkingQF
@@ -45,8 +46,8 @@ public class Client {
 		//Tests.test19(); // testing xxhash
 		////Tests.test20(1000000); //testing xxhash(ByteBuffer)==xxhash(long)
 		//Tests.test21(1000000); // testing insert,search an delete of types int,long,String,byte[]
-		//Tests.test22(); // testing no false negatives for bloom filter
-		//Tests.test23(); // no false negatives for cuckoo filter
+		Tests.test22(); // testing no false negatives for bloom filter
+		Tests.test23(); // no false negatives for cuckoo filter
 		//Tests.test24(); // testing false positive rate for quotient filter
 		//Tests.test25(); // testing false positive rate for cuckoo filter
 		//Tests.test26(); // testing false positive rate for bloom filter

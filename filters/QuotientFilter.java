@@ -650,7 +650,9 @@ public class QuotientFilter extends Filter implements Cloneable {
 		// First thing to do is move everything else in the run back by one slot
 		for (long i = matching_fingerprint_index; i < run_end; i++) {
 			long f = get_fingerprint(i + 1);
+			long[] payload = get_payload(i + 1);
 			set_fingerprint(i, f);
+			set_payload(i, payload);
 		}
 
 		// for each slot, we want to know by how much the entry there is shifted
@@ -669,7 +671,8 @@ public class QuotientFilter extends Filter implements Cloneable {
 			}
 		}
 		
-		set_fingerprint(run_end, 0); 
+		set_fingerprint(run_end, 0);
+		set_payload(run_end, new long[payloadSize]);
 		set_shifted(run_end, false);
 		set_continuation(run_end, false);
 		
@@ -709,7 +712,9 @@ public class QuotientFilter extends Filter implements Cloneable {
 
 			for (long i = next_run_start; i <= run_end; i++) {
 				long f = get_fingerprint(i);
+				long[] pl = get_payload(i);
 				set_fingerprint(i - 1, f);
+				set_payload(i - 1, pl);
 				if (is_continuation(i)) {
 					set_continuation(i-1, true);
 				}
@@ -719,6 +724,7 @@ public class QuotientFilter extends Filter implements Cloneable {
 			}
 			num_shifted_count += run_end - next_run_start;
 			set_fingerprint(run_end, 0);
+			set_payload(run_end, new long[payloadSize]);
 			set_shifted(run_end, false);
 			set_continuation(run_end, false);
 		} while (true);
