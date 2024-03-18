@@ -62,8 +62,8 @@ public class BasicInfiniFilter extends QuotientFilter implements Cloneable {
 	}
 	
 	protected boolean compare(long index, long fingerprint, long generation) {
-		long first_fp_bit = index * bitPerEntry + 3;
-		long last_fp_bit = index * bitPerEntry + 3 + fingerprintLength - (generation + 1);
+		long first_fp_bit = index * (bitPerEntry + payloadSize) + 3;
+		long last_fp_bit = first_fp_bit + fingerprintLength - (generation + 1);
 		long actual_fp_length = last_fp_bit - first_fp_bit;
 		long mask = (1L << actual_fp_length) - 1L;
 		long existing_fingerprint = filter.getFromTo(first_fp_bit, last_fp_bit);

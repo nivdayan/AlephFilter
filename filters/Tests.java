@@ -599,90 +599,92 @@ public class Tests {
 		}
 	}
 
-//	// insert entries across two phases of expansion, and then check we can still find all of them
-//	static public void test9() {
-//
-//		int bits_per_entry = 10;
-//		int num_entries_power = 3;
-//		Chaining qf = new Chaining(num_entries_power, bits_per_entry);
-//		qf.max_entries_before_full = Integer.MAX_VALUE; // disable automatic expansion
-//
-//		int i = 0;
-//		while (i < Math.pow(2, num_entries_power) - 2) {
-//			boolean success = qf.insert(i, false);
-//			if (!success) {
-//				System.out.println("test9: insertion should have worked");
-//				System.exit(1);
-//			}
-//			i++;
-//		}
-//		qf.expand();
-//
-//		//qf.pretty_print();
-//		while (i < Math.pow(2, num_entries_power + 1) - 2) {
-//			boolean success = qf.insert(i, false);
-//			if (!success) {
-//				System.out.println("test9: insertion should have worked");
-//				System.exit(1);
-//			}
-//			i++;
-//		}
-//
-//		for (int j = 0; j < i; j++) {
-//			if ( !qf.search(j) ) {
-//				System.out.println("test9: false negative  " + j);
-//				System.exit(1);
-//			}
-//		}
-//
-//	}
-//
-//	static public void test10() {
-//		int bits_per_entry = 10;
-//		int num_entries_power = 3;
-//		BasicInfiniFilter qf = new BasicInfiniFilter(num_entries_power, bits_per_entry);
-//		qf.expand_autonomously = false;
-//		qf.hash_type = HashType.arbitrary;
-//		int i = 1;
-//		while (i < Math.pow(2, num_entries_power) - 1) {
-//			boolean success = qf.insert(i, false);
-//			i++;
-//			if (!success) {
-//				System.out.println("insertion failed");
-//			}
-//		}
-//
-//		//qf.pretty_print();
-//		qf.expand();
-//		//qf.pretty_print();
-//
-//		int num_entries = 1 << ++num_entries_power;
-//		BitSet result = new BitSet(num_entries * bits_per_entry);
-//		result = set_slot_in_test(result, bits_per_entry, 0, false, false, false, "0000000");
-//		result = set_slot_in_test(result, bits_per_entry, 1, true, false, false, "1100101");
-//		result = set_slot_in_test(result, bits_per_entry, 2, true, false, false, "1010101");
-//		result = set_slot_in_test(result, bits_per_entry, 3, false, false, false, "0000000");
-//		result = set_slot_in_test(result, bits_per_entry, 4, false, false, false, "0000000");
-//		result = set_slot_in_test(result, bits_per_entry, 5, true, false, false, "0010001");
-//		result = set_slot_in_test(result, bits_per_entry, 6, false, false, false, "0000000");
-//		result = set_slot_in_test(result, bits_per_entry, 7, true, false, false, "0101101");
-//		result = set_slot_in_test(result, bits_per_entry, 8, true, false, false, "1001001");
-//		result = set_slot_in_test(result, bits_per_entry, 9, false, true, true, "0111001");
-//		//qf.pretty_print();
-//		check_equality(qf, result, true);
-//
-//		i = 1;
-//		while (i < Math.pow(2, num_entries_power - 1) - 1) {
-//			boolean found = qf.search(i);
-//			//qf.compare(0, 0);
-//			if (!found) {
-//				System.out.println("not found entry " + i + "   test 10");
-//				System.exit(1);
-//			}
-//			i++;
-//		}
-//	}
-//
+	// insert entries across two phases of expansion, and then check we can still find all of them
+	static public void test9() {
+
+		int bits_per_entry = 10;
+		int num_entries_power = 3;
+		int payload_size = 10;
+		Chaining qf = new Chaining(num_entries_power, bits_per_entry, payload_size);
+		qf.max_entries_before_full = Integer.MAX_VALUE; // disable automatic expansion
+
+		int i = 0;
+		while (i < Math.pow(2, num_entries_power) - 2) {
+			boolean success = qf.insert(i, false, new long[]{i});
+			if (!success) {
+				System.out.println("test9: insertion should have worked");
+				System.exit(1);
+			}
+			i++;
+		}
+		// qf.pretty_print();
+		qf.expand();
+		// qf.pretty_print();
+		while (i < Math.pow(2, num_entries_power + 1) - 2) {
+			boolean success = qf.insert(i, false, new long[]{i});
+			if (!success) {
+				System.out.println("test9: insertion should have worked");
+				System.exit(1);
+			}
+			i++;
+		}
+
+		for (int j = 0; j < i; j++) {
+			if ( !qf.search(j) ) {
+				System.out.println("test9: false negative  " + j);
+				System.exit(1);
+			}
+		}
+
+	}
+
+	static public void test10() {
+		int bits_per_entry = 10;
+		int num_entries_power = 3;
+		int payload_size = 10;
+		BasicInfiniFilter qf = new BasicInfiniFilter(num_entries_power, bits_per_entry, payload_size);
+		qf.expand_autonomously = false;
+		qf.hash_type = HashType.arbitrary;
+		int i = 1;
+		while (i < Math.pow(2, num_entries_power) - 1) {
+			boolean success = qf.insert(i, false, new long[]{i});
+			i++;
+			if (!success) {
+				System.out.println("insertion failed");
+			}
+		}
+
+//		qf.pretty_print();
+		qf.expand();
+//		qf.pretty_print();
+
+		int num_entries = 1 << ++num_entries_power;
+		BitSet result = new BitSet(num_entries * bits_per_entry);
+		result = set_slot_in_test(result, bits_per_entry, payload_size, 0, false, false, false, "0000000", new long[]{0});
+		result = set_slot_in_test(result, bits_per_entry, payload_size, 1, true, false, false, "1100101", new long[]{4});
+		result = set_slot_in_test(result, bits_per_entry, payload_size, 2, true, false, false, "1010101", new long[]{5});
+		result = set_slot_in_test(result, bits_per_entry, payload_size, 3, false, false, false, "0000000", new long[]{0});
+		result = set_slot_in_test(result, bits_per_entry, payload_size, 4, false, false, false, "0000000", new long[]{0});
+		result = set_slot_in_test(result, bits_per_entry, payload_size, 5, true, false, false, "0010001", new long[]{3});
+		result = set_slot_in_test(result, bits_per_entry, payload_size, 6, false, false, false, "0000000", new long[]{0});
+		result = set_slot_in_test(result, bits_per_entry, payload_size, 7, true, false, false, "0101101", new long[]{1});
+		result = set_slot_in_test(result, bits_per_entry, payload_size, 8, true, false, false, "1001001", new long[]{2});
+		result = set_slot_in_test(result, bits_per_entry, payload_size, 9, false, true, true, "0111001", new long[]{6});
+		//qf.pretty_print();
+		check_equality(qf, result, true);
+
+		i = 1;
+		while (i < Math.pow(2, num_entries_power - 1) - 1) {
+			boolean found = qf.search(i);
+			//qf.compare(0, 0);
+			if (!found) {
+				System.out.println("not found entry " + i + "   test 10");
+				System.exit(1);
+			}
+			i++;
+		}
+	}
+
 //	// this test ensures we issue enough insertions until the fingerprints of at least some of the first entries inserted
 //	// run out. This means that for these entries, we are going to try the chaining technique to avoid false negatives.
 //	static public void test12() {

@@ -34,8 +34,8 @@ public class Client {
 		Tests.test6(); // iteration test 1
 		Tests.test7(); // iteration test 2
 		Tests.test8(); // expansion test for FingerprintShrinkingQF
-		//Tests.test9(); // expansion test for MultiplyingQF
-		//Tests.test10(); // testing InfiniFilter
+		Tests.test9(); // expansion test for MultiplyingQF
+		Tests.test10(); // testing InfiniFilter
 		//Tests.test12(); // testing InfiniFilter - chained
 		//Tests.test13(); // testing InfiniFilter - rejuvenation
 		//Tests.test14(); // InfiniFilter deleting largest matching fingerprint
