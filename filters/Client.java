@@ -31,17 +31,17 @@ public class Client {
 		Tests.test3(); // ensuring no false negatives
 		Tests.test4(); // overflow test
 		Tests.test5(); // deletion test
-		//Tests.test6(); // iteration test 1
-		//Tests.test7(); // iteration test 2
-		//Tests.test8(); // expansion test for FingerprintShrinkingQF
+		Tests.test6(); // iteration test 1
+		Tests.test7(); // iteration test 2
+		Tests.test8(); // expansion test for FingerprintShrinkingQF
 		//Tests.test9(); // expansion test for MultiplyingQF
 		//Tests.test10(); // testing InfiniFilter
 		//Tests.test12(); // testing InfiniFilter - chained
 		//Tests.test13(); // testing InfiniFilter - rejuvenation
 		//Tests.test14(); // InfiniFilter deleting largest matching fingerprint
 		//Tests.test15(); // testing deletes
-		//Tests.test16(); // testing deletes
-		//Tests.test17(); // testing deletes
+		Tests.test16(); // testing deletes
+		Tests.test17(); // testing deletes
 		//Tests.test18(); // testing deletes & rejuv operations
 		//Tests.test19(); // testing xxhash
 		////Tests.test20(1000000); //testing xxhash(ByteBuffer)==xxhash(long)

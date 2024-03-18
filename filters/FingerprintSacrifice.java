@@ -44,19 +44,19 @@ public class FingerprintSacrifice extends QuotientFilter {
 			long updated_bucket = bucket | bucket_mask;
 			long updated_fingerprint = fingerprint >> 1;
 			
-			/*System.out.println(bucket); 
-			System.out.print("bucket1      : ");
-			print_int_in_binary( bucket, power_of_two_size);
-			System.out.print("fingerprint1 : ");
-			print_int_in_binary((int) fingerprint, fingerprintLength);
-			System.out.print("pivot        : ");
-			print_int_in_binary((int) pivot_bit, 1);
-			System.out.print("bucket2      : ");
-			print_int_in_binary((int) updated_bucket, power_of_two_size + 1);
-			System.out.print("fingerprint2 : ");
-			print_int_in_binary((int) updated_fingerprint, fingerprintLength - 1);
-			System.out.println();
-			System.out.println();*/
+			// System.out.println(bucket);
+			// System.out.print("bucket1      : ");
+			// print_int_in_binary((int) bucket, power_of_two_size);
+			// System.out.print("fingerprint1 : ");
+			// print_int_in_binary((int) fingerprint, fingerprintLength);
+			// System.out.print("pivot        : ");
+			// print_int_in_binary((int) pivot_bit, 1);
+			// System.out.print("bucket2      : ");
+			// print_int_in_binary((int) updated_bucket, power_of_two_size + 1);
+			// System.out.print("fingerprint2 : ");
+			// print_int_in_binary((int) updated_fingerprint, fingerprintLength - 1);
+			// System.out.println();
+			// System.out.println();
 			
 			new_qf.insert(updated_fingerprint, (int)updated_bucket, false, payload);
 		}

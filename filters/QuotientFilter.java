@@ -1,19 +1,3 @@
-/*
- * Copyright 2024 Niv Dayan
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
- */
-
 package filters;
 
 import java.util.*;
@@ -243,6 +227,10 @@ public class QuotientFilter extends Filter implements Cloneable {
 			if (i == 0) {
 				elementSizeInBits = payloadSize % Long.SIZE;
 			}
+			// System.out.println("--------------------------------------");
+			// System.out.println(payload.length);
+			// System.out.println(startPosition + " " + elementSizeInBits);
+			// System.out.println(filter.size());
 			filter.setFromTo(startPosition, startPosition + elementSizeInBits, element);
 			startPosition += elementSizeInBits;
 		}
@@ -252,6 +240,9 @@ public class QuotientFilter extends Filter implements Cloneable {
 	// if vertical is on, each line will represent a slot
 	public String get_pretty_str(boolean vertical) {
 		StringBuffer sbr = new StringBuffer();
+		String ss = String.format("%-" + fingerprintLength + "s", "FP");
+		// More beautiful columnar rep
+		sbr.append("\ni\t   \t").append(ss).append("\t").append("Payload");
 		
 		long logic_slots = get_logical_num_slots();
 		long all_slots = get_logical_num_slots_plus_extensions();
@@ -259,20 +250,23 @@ public class QuotientFilter extends Filter implements Cloneable {
 		for (long i = 0; i < filter.size(); i++) {
 		//for (long i = 0; i < 100; i++) {
 
-			long remainder = i % bitPerEntry;
+			long remainder = i % (bitPerEntry + payloadSize);
 			if (remainder == 0) {
-				long slot = i / bitPerEntry;
-				long slot_num = i/bitPerEntry;
-				sbr.append(" ");
+				long slot = i / (bitPerEntry + payloadSize);
+				long slot_num = i/(bitPerEntry + payloadSize);
+				sbr.append("\t");
 				if (vertical) {
 					if (slot_num == logic_slots || slot_num == all_slots) {
 						sbr.append("\n ---------");
 					}
-					sbr.append("\n" + slot_num + " ");
+					sbr.append("\n" + slot_num + "\t");
 				}
 			}
 			if (remainder == 3) {
-				sbr.append(" ");
+				sbr.append("\t");
+			}
+			if (remainder == bitPerEntry) {
+				sbr.append("\t");
 			}
 			sbr.append(filter.get(i) ? "1" : "0");
 		}
@@ -323,7 +317,7 @@ public class QuotientFilter extends Filter implements Cloneable {
 
 	// return an entire slot representation, including metadata flags and fingerprint
 	long[] get_slot(long index) {
-		long bitsAndFingerprint = filter.getFromTo(index * (bitPerEntry), (index + 1) * (bitPerEntry));
+		long bitsAndFingerprint = filter.getFromTo(index * (bitPerEntry + payloadSize), index * (bitPerEntry + payloadSize) + bitPerEntry);
 		long[] payload = get_payload(index);
 		long[] result = Arrays.copyOf(payload, payload.length + 1);
 		result[payload.length] = bitsAndFingerprint;
@@ -482,7 +476,20 @@ public class QuotientFilter extends Filter implements Cloneable {
 		} while (is_continuation(run_index));		
 		return set;
 	}
-	
+
+	Set<long[]> get_all_payloads(long bucket_index) {
+		boolean does_run_exist = is_occupied(bucket_index);
+		HashSet<long[]> set = new HashSet<>();
+		if (!does_run_exist) {
+			return set;
+		}
+		long run_index = find_run_start(bucket_index);
+		do {
+			set.add(get_payload(run_index));
+			run_index++;
+		} while (is_continuation(run_index));
+		return set;
+	}
 	// Swaps the fingerprint in a given slot with a new one. Return the pre-existing fingerprint
 	long[] swap_fingerprints(long index, long new_fingerprint, long[] new_payload) {
 		long existing = get_fingerprint(index);
@@ -672,7 +679,8 @@ public class QuotientFilter extends Filter implements Cloneable {
 		}
 		
 		set_fingerprint(run_end, 0);
-		set_payload(run_end, new long[payloadSize]);
+		long[] tmp = new long[(payloadSize + Long.SIZE - 1) / Long.SIZE];
+		set_payload(run_end, tmp);
 		set_shifted(run_end, false);
 		set_continuation(run_end, false);
 		
@@ -724,7 +732,7 @@ public class QuotientFilter extends Filter implements Cloneable {
 			}
 			num_shifted_count += run_end - next_run_start;
 			set_fingerprint(run_end, 0);
-			set_payload(run_end, new long[payloadSize]);
+			set_payload(run_end, new long[(payloadSize + Long.SIZE - 1) / Long.SIZE]);
 			set_shifted(run_end, false);
 			set_continuation(run_end, false);
 		} while (true);
@@ -804,6 +812,7 @@ public class QuotientFilter extends Filter implements Cloneable {
 		}
 		long slot_index = get_slot_index(large_hash);
 		long fingerprint = gen_fingerprint(large_hash);
+		// System.out.println(Long.toBinaryString(fingerprint) + " " + Arrays.toString(payload));
 		
 		/*print_long_in_binary(large_hash, 64);
 		print_long_in_binary(slot_index, 32);

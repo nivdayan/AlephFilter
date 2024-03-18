@@ -330,271 +330,275 @@ public class Tests {
 		check_equality(qf, result, true);
 		//qf.pretty_print();
 	}
-//
-//	// delete testing
-//	static public void test16() {
-//		int bits_per_entry = 8;
-//		int num_entries_power = 3;
-//		int num_entries = (int)Math.pow(2, num_entries_power);
-//		QuotientFilter qf = new QuotientFilter(num_entries_power, bits_per_entry);
-//
-//		/*long fp1 = 1 << 4;
-//		long fp2 = 1 << 3;
-//		long fp3 = 1 << 2;
-//		long fp4 = 31;*/
-//
-//		qf.insert(0, 1, false);
-//		qf.insert(0, 1, false);
-//		qf.insert(0, 2, false);
-//		qf.insert(0, 2, false);
-//		qf.insert(0, 3, false);
-//		qf.insert(0, 3, false);
-//		qf.insert(0, 3, false);
-//		qf.insert(0, 6, false);
-//		qf.insert(0, 6, false);
-//		qf.insert(0, 6, false);
-//		qf.insert(0, 7, false);
-//
-//		//qf.pretty_print();
-//		//qf.delete(31, 1);
-//		//qf.pretty_print();
-//		//qf.delete(fp1, 1);
-//		//qf.pretty_print();
-//		//qf.delete(fp1, 1);
-//		//qf.pretty_print();
-//		//qf.delete(fp1, 1);
-//		//qf.pretty_print();
-//		//qf.delete(fp1, 1);
-//		//qf.pretty_print();
-//
-//		//qf.pretty_print();
-//		qf.delete(0, 2);
-//		//qf.pretty_print();
-//		qf.delete(0, 3);
-//		//qf.pretty_print();
-//
-//		BitSet result = new BitSet(num_entries * bits_per_entry);
-//		result = set_slot_in_test(result, bits_per_entry, 1, true, false, false, 0);
-//		result = set_slot_in_test(result, bits_per_entry, 2, true, true, true, 0);
-//		result = set_slot_in_test(result, bits_per_entry, 3, true, false, true, 0);
-//		result = set_slot_in_test(result, bits_per_entry, 4, false, false, true, 0);
-//		result = set_slot_in_test(result, bits_per_entry, 5, false, true, true, 0);
-//		result = set_slot_in_test(result, bits_per_entry, 6, true, false, false, 0);
-//		result = set_slot_in_test(result, bits_per_entry, 7, true, true, true, 0);
-//		result = set_slot_in_test(result, bits_per_entry, 8, false, true, true, 0);
-//		result = set_slot_in_test(result, bits_per_entry, 9, false, false, true, 0);
-//
-//		check_equality(qf, result, true);
-//		//qf.pretty_print();
-//	}
-//
-//	// This is a test for deleting items. We insert many keys into one slot to create an overflow.
-//	// we then remove them and check that the other keys are back to their canonical slots.
-//	static public void test17() {
-//		int bits_per_entry = 8;
-//		int num_entries_power = 3;
-//		int num_entries = (int)Math.pow(2, num_entries_power);
-//		QuotientFilter qf = new QuotientFilter(num_entries_power, bits_per_entry);
-//
-//		/*long fp1 = 1 << 4;
-//		long fp2 = 1 << 3;
-//		long fp3 = 1 << 2;
-//		long fp4 = 31;*/
-//
-//		qf.insert(0, 1, false);
-//		qf.insert(0, 1, false);
-//		qf.insert(0, 2, false);
-//		qf.insert(0, 2, false);
-//		qf.insert(0, 3, false);
-//		qf.insert(0, 4, false);
-//		qf.insert(0, 4, false);
-//		qf.insert(0, 5, false);
-//
-//		//qf.pretty_print();
-//		qf.delete(0, 3);
-//		//qf.pretty_print();
-//
-//		BitSet result = new BitSet(num_entries * bits_per_entry);
-//		result = set_slot_in_test(result, bits_per_entry, 1, true, false, false, 0);
-//		result = set_slot_in_test(result, bits_per_entry, 2, true, true, true, 0);
-//		result = set_slot_in_test(result, bits_per_entry, 3, false, false, true, 0);
-//		result = set_slot_in_test(result, bits_per_entry, 4, true, true, true, 0);
-//		result = set_slot_in_test(result, bits_per_entry, 5, true, false, true, 0);
-//		result = set_slot_in_test(result, bits_per_entry, 6, false, true, true, 0);
-//		result = set_slot_in_test(result, bits_per_entry, 7, false, false, true, 0);
-//		check_equality(qf, result, true);
-//	}
-//
-//	// This is a test for deleting items. We insert many keys into one slot to create an overflow.
-//	// we then remove them and check that the other keys are back to their canonical slots.
-//	/*static public void test18() {
-//		int bits_per_entry = 8;
-//		int num_entries_power = 5;
-//		int num_entries = (int)Math.pow(2, num_entries_power);
-//		QuotientFilter qf = new QuotientFilter(num_entries_power, bits_per_entry);
-//
-//		long fp1 = 1 << 4;
-//		long fp2 = 1 << 3;
-//		long fp3 = 1 << 2;
-//		long fp4 = 31;
-//
-//		qf.insert(0, 1, false);
-//		qf.insert(0, 1, false);
-//		qf.insert(0, 2, false);
-//		qf.insert(0, 2, false);
-//		qf.insert(0, 3, false);
-//		qf.insert(0, 4, false);
-//		qf.insert(0, 4, false);
-//		qf.insert(0, 5, false);
-//		qf.insert(0, 6, false);
-//		qf.insert(0, 6, false);
-//		qf.insert(0, 7, false);
-//		qf.insert(0, 8, false);
-//
-//		qf.insert(0, 10, false);
-//		qf.insert(0, 11, false);
-//		qf.insert(0, 12, false);
-//
-//		qf.insert(0, 14, false);
-//		qf.insert(0, 15, false);
-//
-//		qf.insert(0, 17, false);
-//		qf.insert(0, 17, false);
-//		qf.insert(0, 19, false);
-//
-//		//qf.delete(31, 1);
-//		//qf.pretty_print();
-//		//qf.delete(fp1, 1);
-//		//qf.pretty_print();
-//		//qf.delete(fp1, 1);
-//		//qf.pretty_print();
-//		//qf.delete(fp1, 1);
-//		//qf.pretty_print();
-//		//qf.delete(fp1, 1);
-//		//qf.pretty_print();
-//
-//		qf.pretty_print();
-//		qf.delete(0, 3);
-//		qf.pretty_print();
-//
-//		BitSet result = new BitSet(num_entries * bits_per_entry);
-//		result = set_slot_in_test(result, bits_per_entry, 1, true, false, false, 0);
-//		result = set_slot_in_test(result, bits_per_entry, 2, true, true, true, 0);
-//		result = set_slot_in_test(result, bits_per_entry, 3, true, false, true, 0);
-//		result = set_slot_in_test(result, bits_per_entry, 4, false, false, true, 0);
-//		result = set_slot_in_test(result, bits_per_entry, 5, false, true, true, 0);
-//		result = set_slot_in_test(result, bits_per_entry, 6, true, false, false, 0);
-//		result = set_slot_in_test(result, bits_per_entry, 7, true, true, true, 0);
-//		result = set_slot_in_test(result, bits_per_entry, 8, false, true, true, 0);
-//		result = set_slot_in_test(result, bits_per_entry, 9, false, false, true, 0);
-//
-//		check_equality(qf, result, true);
-//		//qf.pretty_print();
-//	}*/
-//
-//	static public void test6() {
-//
-//		int bits_per_entry = 8;
-//		int num_entries_power = 4;
-//		//int num_entries = (int)Math.pow(2, num_entries_power);
-//		//int fingerprint_size = bits_per_entry - 3;
-//		QuotientFilter qf = new QuotientFilter(num_entries_power, bits_per_entry);
-//
-//		qf.insert(0, 2, false);
-//		qf.insert(0, 3, false);
-//		qf.insert(0, 3, false);
-//		qf.insert(0, 4, false);
-//		qf.insert(0, 23, false); // last key in the filter
-//		qf.insert(0, 24, false); // outside the bounds, logical slot 14 does not exist logically, even if it might exist physically
-//
-//		Iterator it = new Iterator(qf);
-//		int[] arr = new int[] {2, 3, 3, 4, 23};
-//		int arr_index = 0;
-//
-//
-//		while (it.next()) {
-//			//System.out.println(it.bucket_index);
-//			if (arr[arr_index++] != it.bucket_index) {
-//				System.out.print("error in iteration");
-//				System.exit(1);
-//			}
-//		}
-//
-//	}
-//
-//	static public void test7() {
-//
-//		int bits_per_entry = 8;
-//		int num_entries_power = 4;
-//		QuotientFilter qf = new QuotientFilter(num_entries_power, bits_per_entry);
-//
-//		qf.insert(0, 1, false);
-//		qf.insert(0, 4, false);
-//		qf.insert(0, 7, false);
-//		//qf.pretty_print();
-//		qf.insert(0, 1, false);
-//		qf.insert(0, 2, false);
-//		//qf.pretty_print();
-//		qf.insert(0, 1, false);
-//		qf.insert(0, 15, false);
-//
-//		Iterator it = new Iterator(qf);
-//		int[] arr = new int[] {1, 1, 1, 2, 4, 7, 15};
-//		int arr_index = 0;
-//
-//
-//		//qf.pretty_print();
-//		while (it.next()) {
-//			//System.out.println(it.bucket_index);
-//			if (arr[arr_index++] != it.bucket_index) {
-//				System.out.print("error in iteration");
-//				System.exit(1);
-//			}
-//		}
-//	}
-//
-//	// In this test, we create one FingerprintShrinkingQF and expand it once.
-//	// We also create an expanded Quotient Filter with the same data from the onset and make sure they are logically equivalent.
-//	static public void test8() {
-//
-//		int bits_per_entry = 10;
-//		int num_entries_power = 4;
-//		FingerprintSacrifice qf = new FingerprintSacrifice(num_entries_power, bits_per_entry);
-//		qf.max_entries_before_full = Integer.MAX_VALUE; // disable automatic expansion
-//		//qf.print_key(1);
-//
-//		for (int i = 0; i < 12; i++) {
-//			qf.insert(i, false);
-//		}
-//
-//		//qf.pretty_print();
-//		qf.expand();
-//		//qf.pretty_print();
-//
-//		QuotientFilter qf2 = new QuotientFilter(num_entries_power + 1, bits_per_entry - 1);
-//
-//		for (int i = 0; i < 12; i++) {
-//			qf2.insert(i, false);
-//		}
-//
-//		//qf2.pretty_print();
-//
-//		if (qf.filter.size() != qf2.filter.size()) {
-//			System.out.print("filters have different sizes");
-//			System.exit(1);
-//		}
-//
-//		for (int i = 0; i < qf.get_logical_num_slots(); i++) {
-//			Set<Long> set1 = qf.get_all_fingerprints(i);
-//			Set<Long> set2 = qf2.get_all_fingerprints(i);
-//
-//			if (!set1.equals(set2)) {
-//				System.out.print("fingerprints for bucket " + i + " not identical");
-//				System.exit(1);
-//			}
-//		}
-//	}
-//
+
+	// delete testing
+	static public void test16() {
+		int bits_per_entry = 8;
+		int num_entries_power = 3;
+		int payload_size = 3;
+		int num_entries = (int)Math.pow(2, num_entries_power);
+		QuotientFilter qf = new QuotientFilter(num_entries_power, bits_per_entry, payload_size);
+
+		/*long fp1 = 1 << 4;
+		long fp2 = 1 << 3;
+		long fp3 = 1 << 2;
+		long fp4 = 31;*/
+
+		qf.insert(0, 1, false, new long[1]);
+		qf.insert(0, 1, false, new long[1]);
+		qf.insert(0, 2, false, new long[1]);
+		qf.insert(0, 2, false, new long[1]);
+		qf.insert(0, 3, false, new long[1]);
+		qf.insert(0, 3, false, new long[1]);
+		qf.insert(0, 3, false, new long[1]);
+		qf.insert(0, 6, false, new long[1]);
+		qf.insert(0, 6, false, new long[1]);
+		qf.insert(0, 6, false, new long[1]);
+		qf.insert(0, 7, false, new long[1]);
+
+		//qf.pretty_print();
+		//qf.delete(31, 1);
+		//qf.pretty_print();
+		//qf.delete(fp1, 1);
+		//qf.pretty_print();
+		//qf.delete(fp1, 1);
+		//qf.pretty_print();
+		//qf.delete(fp1, 1);
+		//qf.pretty_print();
+		//qf.delete(fp1, 1);
+		//qf.pretty_print();
+
+		//qf.pretty_print();
+		qf.delete(0, 2);
+		//qf.pretty_print();
+		qf.delete(0, 3);
+		//qf.pretty_print();
+
+		BitSet result = new BitSet(num_entries * bits_per_entry);
+		result = set_slot_in_test(result, bits_per_entry, payload_size, 1, true, false, false, 0, new long[1]);
+		result = set_slot_in_test(result, bits_per_entry, payload_size, 2, true, true, true, 0, new long[1]);
+		result = set_slot_in_test(result, bits_per_entry, payload_size, 3, true, false, true, 0, new long[1]);
+		result = set_slot_in_test(result, bits_per_entry, payload_size, 4, false, false, true, 0, new long[1]);
+		result = set_slot_in_test(result, bits_per_entry, payload_size, 5, false, true, true, 0, new long[1]);
+		result = set_slot_in_test(result, bits_per_entry, payload_size, 6, true, false, false, 0, new long[1]);
+		result = set_slot_in_test(result, bits_per_entry, payload_size, 7, true, true, true, 0, new long[1]);
+		result = set_slot_in_test(result, bits_per_entry, payload_size, 8, false, true, true, 0, new long[1]);
+		result = set_slot_in_test(result, bits_per_entry, payload_size, 9, false, false, true, 0, new long[1]);
+
+		check_equality(qf, result, true);
+		//qf.pretty_print();
+	}
+
+	// This is a test for deleting items. We insert many keys into one slot to create an overflow.
+	// we then remove them and check that the other keys are back to their canonical slots.
+	static public void test17() {
+		int bits_per_entry = 8;
+		int num_entries_power = 3;
+		int payload_size = 13;
+		int num_entries = (int)Math.pow(2, num_entries_power);
+		QuotientFilter qf = new QuotientFilter(num_entries_power, bits_per_entry, payload_size);
+
+		/*long fp1 = 1 << 4;
+		long fp2 = 1 << 3;
+		long fp3 = 1 << 2;
+		long fp4 = 31;*/
+
+		qf.insert(0, 1, false, new long[]{1});
+		qf.insert(0, 1, false, new long[]{0});
+		qf.insert(0, 2, false, new long[]{2});
+		qf.insert(0, 2, false, new long[]{3});
+		qf.insert(0, 3, false, new long[]{4});
+		qf.insert(0, 4, false, new long[]{5});
+		qf.insert(0, 4, false, new long[]{6});
+		qf.insert(0, 5, false, new long[]{7});
+
+		//qf.pretty_print();
+		qf.delete(0, 3);
+		//qf.pretty_print();
+
+		BitSet result = new BitSet(num_entries * bits_per_entry);
+		result = set_slot_in_test(result, bits_per_entry, payload_size, 1, true, false, false, 0, new long[]{1});
+		result = set_slot_in_test(result, bits_per_entry, payload_size, 2, true, true, true, 0, new long[]{0});
+		result = set_slot_in_test(result, bits_per_entry, payload_size, 3, false, false, true, 0, new long[]{2});
+		result = set_slot_in_test(result, bits_per_entry, payload_size, 4, true, true, true, 0, new long[]{3});
+		result = set_slot_in_test(result, bits_per_entry, payload_size, 5, true, false, true, 0, new long[]{5});
+		result = set_slot_in_test(result, bits_per_entry, payload_size, 6, false, true, true, 0, new long[]{6});
+		result = set_slot_in_test(result, bits_per_entry, payload_size, 7, false, false, true, 0, new long[]{7});
+		check_equality(qf, result, true);
+	}
+
+	// This is a test for deleting items. We insert many keys into one slot to create an overflow.
+	// we then remove them and check that the other keys are back to their canonical slots.
+	/*static public void test18() {
+		int bits_per_entry = 8;
+		int num_entries_power = 5;
+		int num_entries = (int)Math.pow(2, num_entries_power);
+		QuotientFilter qf = new QuotientFilter(num_entries_power, bits_per_entry);
+
+		long fp1 = 1 << 4;
+		long fp2 = 1 << 3;
+		long fp3 = 1 << 2;
+		long fp4 = 31;
+
+		qf.insert(0, 1, false);
+		qf.insert(0, 1, false);
+		qf.insert(0, 2, false);
+		qf.insert(0, 2, false);
+		qf.insert(0, 3, false);
+		qf.insert(0, 4, false);
+		qf.insert(0, 4, false);
+		qf.insert(0, 5, false);
+		qf.insert(0, 6, false);
+		qf.insert(0, 6, false);
+		qf.insert(0, 7, false);
+		qf.insert(0, 8, false);
+
+		qf.insert(0, 10, false);
+		qf.insert(0, 11, false);
+		qf.insert(0, 12, false);
+
+		qf.insert(0, 14, false);
+		qf.insert(0, 15, false);
+
+		qf.insert(0, 17, false);
+		qf.insert(0, 17, false);
+		qf.insert(0, 19, false);
+
+		//qf.delete(31, 1);
+		//qf.pretty_print();
+		//qf.delete(fp1, 1);
+		//qf.pretty_print();
+		//qf.delete(fp1, 1);
+		//qf.pretty_print();
+		//qf.delete(fp1, 1);
+		//qf.pretty_print();
+		//qf.delete(fp1, 1);
+		//qf.pretty_print();
+
+		qf.pretty_print();
+		qf.delete(0, 3);
+		qf.pretty_print();
+
+		BitSet result = new BitSet(num_entries * bits_per_entry);
+		result = set_slot_in_test(result, bits_per_entry, 1, true, false, false, 0);
+		result = set_slot_in_test(result, bits_per_entry, 2, true, true, true, 0);
+		result = set_slot_in_test(result, bits_per_entry, 3, true, false, true, 0);
+		result = set_slot_in_test(result, bits_per_entry, 4, false, false, true, 0);
+		result = set_slot_in_test(result, bits_per_entry, 5, false, true, true, 0);
+		result = set_slot_in_test(result, bits_per_entry, 6, true, false, false, 0);
+		result = set_slot_in_test(result, bits_per_entry, 7, true, true, true, 0);
+		result = set_slot_in_test(result, bits_per_entry, 8, false, true, true, 0);
+		result = set_slot_in_test(result, bits_per_entry, 9, false, false, true, 0);
+
+		check_equality(qf, result, true);
+		//qf.pretty_print();
+	}*/
+
+	static public void test6() {
+
+		int bits_per_entry = 8;
+		int num_entries_power = 4;
+		int payload_size = 166;
+		//int num_entries = (int)Math.pow(2, num_entries_power);
+		//int fingerprint_size = bits_per_entry - 3;
+		QuotientFilter qf = new QuotientFilter(num_entries_power, bits_per_entry, payload_size);
+
+		qf.insert(0, 2, false, new long[]{1});
+		qf.insert(0, 3, false, new long[]{1});
+		qf.insert(0, 3, false, new long[]{1});
+		qf.insert(0, 4, false, new long[]{1});
+		qf.insert(0, 23, false, new long[]{1}); // last key in the filter
+		qf.insert(0, 24, false, new long[]{1}); // outside the bounds, logical slot 14 does not exist logically, even if it might exist physically
+
+		Iterator it = new Iterator(qf);
+		int[] arr = new int[] {2, 3, 3, 4, 23};
+		int arr_index = 0;
+
+
+		while (it.next()) {
+			//System.out.println(it.bucket_index);
+			if (arr[arr_index++] != it.bucket_index) {
+				System.out.print("error in iteration");
+				System.exit(1);
+			}
+		}
+
+	}
+
+	static public void test7() {
+
+		int bits_per_entry = 8;
+		int num_entries_power = 4;
+		int payload_size = 401;
+		QuotientFilter qf = new QuotientFilter(num_entries_power, bits_per_entry, payload_size);
+
+		qf.insert(0, 1, false, new long[]{10});
+		qf.insert(0, 4, false, new long[]{1});
+		qf.insert(0, 7, false, new long[]{11});
+		//qf.pretty_print();
+		qf.insert(0, 1, false, new long[]{1});
+		qf.insert(0, 2, false, new long[]{12});
+		//qf.pretty_print();
+		qf.insert(0, 1, false, new long[]{1});
+		qf.insert(0, 15, false, new long[]{133});
+
+		Iterator it = new Iterator(qf);
+		int[] arr = new int[] {1, 1, 1, 2, 4, 7, 15};
+		int arr_index = 0;
+
+
+		//qf.pretty_print();
+		while (it.next()) {
+			//System.out.println(it.bucket_index);
+			if (arr[arr_index++] != it.bucket_index) {
+				System.out.print("error in iteration");
+				System.exit(1);
+			}
+		}
+	}
+
+	// In this test, we create one FingerprintShrinkingQF and expand it once.
+	// We also create an expanded Quotient Filter with the same data from the onset and make sure they are logically equivalent.
+	static public void test8() {
+		int bits_per_entry = 10;
+		int num_entries_power = 4;
+		int payload_size = 6;
+		FingerprintSacrifice qf = new FingerprintSacrifice(num_entries_power, bits_per_entry, payload_size);
+		qf.max_entries_before_full = Integer.MAX_VALUE; // disable automatic expansion
+		//qf.print_key(1);
+
+		for (int i = 0; i < 12; i++) {
+			qf.insert(i, false, new long[]{i});
+		}
+
+		// qf.pretty_print();
+		qf.expand();
+		//qf.pretty_print();
+
+		QuotientFilter qf2 = new QuotientFilter(num_entries_power + 1, bits_per_entry - 1, payload_size);
+
+		for (int i = 0; i < 12; i++) {
+			qf2.insert(i, false, new long[]{i});
+		}
+
+		//qf2.pretty_print();
+
+		if (qf.filter.size() != qf2.filter.size()) {
+			System.out.print("filters have different sizes");
+			System.exit(1);
+		}
+
+		for (int i = 0; i < qf.get_logical_num_slots(); i++) {
+			Set<Long> set1 = qf.get_all_fingerprints(i);
+			Set<Long> set2 = qf2.get_all_fingerprints(i);
+
+			if (!set1.equals(set2)) {
+				System.out.print("fingerprints for bucket " + i + " not identical");
+				System.exit(1);
+			}
+		}
+	}
+
 //	// insert entries across two phases of expansion, and then check we can still find all of them
 //	static public void test9() {
 //
