@@ -28,6 +28,7 @@ public class ExperimentsBase {
 	static int bits_per_entry = 16;
 	static int num_entries_power = 12;	
 	static int num_cycles = 27; // went up to 31
+	static int payload_size = 32;
 	
 	static void parse_arguments(String[] args) {
 		if (args != null) {
@@ -178,7 +179,7 @@ public class ExperimentsBase {
 		int seed = 5; 
 		//int num_entries = (int)Math.pow(2, num_entries_power);
 		int fingerprint_size = bits_per_entry - 3;
-		QuotientFilter qf = new QuotientFilter(num_entries_power, bits_per_entry);
+		QuotientFilter qf = new QuotientFilter(num_entries_power, bits_per_entry, payload_size);
 		HashSet<Integer> added = new HashSet<Integer>();
 		Random rand = new Random(seed);
 		double load_factor = 0.9;
@@ -187,7 +188,7 @@ public class ExperimentsBase {
 
 		for (int i = 0; i < qf.get_physcial_num_slots() * load_factor; i++) {
 			int rand_num = rand.nextInt();
-			boolean success = qf.insert(rand_num, false);
+			boolean success = qf.insert(rand_num, false, new long[]{0});
 			if (success) {
 				added.add(rand_num);
 			}
@@ -221,7 +222,7 @@ public class ExperimentsBase {
 		int seed = 5; 
 		//int num_entries = (int)Math.pow(2, num_entries_power);
 		int fingerprint_size = bits_per_entry - 3;
-		QuotientFilter qf = new QuotientFilter(num_entries_power, bits_per_entry);
+		QuotientFilter qf = new QuotientFilter(num_entries_power, bits_per_entry, payload_size);
 		Random rand = new Random(seed);
 		double load_factor = 0.1;
 		int num_queries = 20000;
@@ -233,7 +234,7 @@ public class ExperimentsBase {
 		for (int i = 0; i < num_insertions; i++) {
 			long start1 = System.nanoTime();
 			int rand_num = rand.nextInt();
-			boolean success = qf.insert(rand_num, false);
+			boolean success = qf.insert(rand_num, false, new long[]{0});
 
 			long end1 = System.nanoTime(); 
 			//if (i > 5) {

@@ -128,7 +128,7 @@ public class Experiment12 extends ExperimentsBase {
 		*/
 		
 		if (do_warmup) {
-			DuplicatingChainedInfiniFilter qf = new DuplicatingChainedInfiniFilter(num_entries_power, bits_per_entry, true, -1);
+			DuplicatingChainedInfiniFilter qf = new DuplicatingChainedInfiniFilter(num_entries_power, bits_per_entry, true, -1, payload_size);
 			qf.set_fpr_style(fpr_style);			
 			qf.set_expand_autonomously(true); 
 			warmup(qf, num_cycles - 4);
@@ -136,7 +136,7 @@ public class Experiment12 extends ExperimentsBase {
 		
 		baseline fingerprint_sacrifice_res = new baseline();
 		for (int j = 8; j <= 16; j += 1) {
-			DuplicatingChainedInfiniFilter qf = new DuplicatingChainedInfiniFilter(num_entries_power, j, true, -1);
+			DuplicatingChainedInfiniFilter qf = new DuplicatingChainedInfiniFilter(num_entries_power, j, true, -1, payload_size);
 			qf.set_fpr_style(fpr_style);			
 			qf.set_expand_autonomously(true); 
 			long starting_index = 0;
@@ -180,7 +180,7 @@ public class Experiment12 extends ExperimentsBase {
 		System.gc();
 		
 		if (do_warmup) {
-			DuplicatingChainedInfiniFilter qf = new DuplicatingChainedInfiniFilter(num_entries_power, bits_per_entry, true, -1);
+			DuplicatingChainedInfiniFilter qf = new DuplicatingChainedInfiniFilter(num_entries_power, bits_per_entry, true, -1, payload_size);
 			qf.set_expand_autonomously(true); 
 			qf.set_fpr_style(fpr_style);			
 			warmup(qf, num_cycles - 4);
@@ -188,7 +188,7 @@ public class Experiment12 extends ExperimentsBase {
 		
 		baseline aleph_regular = new baseline();
 		{
-			DuplicatingChainedInfiniFilter qf = new DuplicatingChainedInfiniFilter(num_entries_power, bits_per_entry, true, -1);
+			DuplicatingChainedInfiniFilter qf = new DuplicatingChainedInfiniFilter(num_entries_power, bits_per_entry, true, -1, payload_size);
 			qf.set_expand_autonomously(true); 
 			qf.set_fpr_style(fpr_style);
 			long starting_index = 0;
@@ -221,7 +221,7 @@ public class Experiment12 extends ExperimentsBase {
 		System.out.println("finished aleph fixed-width");
 
 		if (do_warmup) {
-			ChainedInfiniFilter qf = new ChainedInfiniFilter(num_entries_power, bits_per_entry);
+			ChainedInfiniFilter qf = new ChainedInfiniFilter(num_entries_power, bits_per_entry, payload_size);
 			qf.set_expand_autonomously(true); 
 			qf.set_fpr_style(fpr_style);			
 			warmup(qf, num_cycles - 4);
@@ -229,7 +229,7 @@ public class Experiment12 extends ExperimentsBase {
 		
 		baseline infinifilter = new baseline();
 		{
-			ChainedInfiniFilter qf = new ChainedInfiniFilter(num_entries_power, bits_per_entry);
+			ChainedInfiniFilter qf = new ChainedInfiniFilter(num_entries_power, bits_per_entry, payload_size);
 			qf.set_expand_autonomously(true); 
 			qf.set_fpr_style(fpr_style);
 			long starting_index = 0;
@@ -472,7 +472,7 @@ public class Experiment12 extends ExperimentsBase {
 		boolean successful_insert = false;
 		long phys_entries = 0, max_entries = 0;
 		do {
-			successful_insert = qf.insert(insertion_index, false);
+			successful_insert = qf.insert(insertion_index, false, new long[]{0});
 			insertion_index++;
 			//System.out.println(qf.get_num_physical_entries() + "  " + qf.get_max_entries_before_expansion());
 			 phys_entries = qf.get_num_physical_entries();
@@ -531,16 +531,16 @@ public class Experiment12 extends ExperimentsBase {
 		
 		//System.out.println("inserting: " + num_entries_to_insert + " to capacity " + Math.pow(2, qf.power_of_two_size));
 
-		long slot_of_deleted_key = -1;
+		long[] slot_of_deleted_key = new long[]{-1};
 		int num_deletes = 0;
 		do {
 			slot_of_deleted_key = qf.delete(delete_index);
 			//boolean found = qf.search(delete_index);
 			delete_index++;
 			num_deletes++;
-		} while (delete_index < end_key && slot_of_deleted_key > -1);
-		
-		if (slot_of_deleted_key == -1) {
+		} while (delete_index < end_key && slot_of_deleted_key[slot_of_deleted_key.length - 1] > -1);
+
+		if (slot_of_deleted_key[slot_of_deleted_key.length - 1] == -1) {
 			System.out.println("an delete failed");
 			System.exit(1);
 		}

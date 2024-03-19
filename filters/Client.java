@@ -48,9 +48,9 @@ public class Client {
 		Tests.test21(1000000); // testing insert,search an delete of types int,long,String,byte[]
 		Tests.test22(); // testing no false negatives for bloom filter
 		Tests.test23(); // no false negatives for cuckoo filter
-		//Tests.test24(); // testing false positive rate for quotient filter
-		//Tests.test25(); // testing false positive rate for cuckoo filter
-		//Tests.test26(); // testing false positive rate for bloom filter
+		Tests.test24(); // testing false positive rate for quotient filter
+		Tests.test25(); // testing false positive rate for cuckoo filter
+		Tests.test26(); // testing false positive rate for bloom filter
 		Tests.test27(); // exceeding the bound of the quotient filter
 		
 		System.out.println("all tests passed");
@@ -60,8 +60,8 @@ public class Client {
 
 	static public  void main(String[] args) {		
 		run_tests();
-		// Tests.measure_cluster_length_distribution();
-		// aleph_tests.run_tests();
+		Tests.measure_cluster_length_distribution();
+		aleph_tests.run_tests();
 		
 		System.out.println("success");
 		

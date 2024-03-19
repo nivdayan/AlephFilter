@@ -36,7 +36,7 @@ public class Experiment3 extends ExperimentsBase {
 
 		parse_arguments(args);
 
-		BasicInfiniFilter qf1 = new ChainedInfiniFilter(num_entries_power, bits_per_entry);
+		BasicInfiniFilter qf1 = new ChainedInfiniFilter(num_entries_power, bits_per_entry, payload_size);
 		qf1.set_fpr_style(FingerprintGrowthStrategy.FalsePositiveRateExpansion.UNIFORM);
 		qf1.set_expand_autonomously(true); 
 		baseline res1 = new baseline();
@@ -49,7 +49,7 @@ public class Experiment3 extends ExperimentsBase {
 			System.out.println("infinifilter uniform FPR " + i);
 		}
 		
-		BasicInfiniFilter qf2 = new ChainedInfiniFilter(num_entries_power, bits_per_entry);
+		BasicInfiniFilter qf2 = new ChainedInfiniFilter(num_entries_power, bits_per_entry, payload_size);
 		qf2.set_fpr_style(FingerprintGrowthStrategy.FalsePositiveRateExpansion.POLYNOMIAL);
 		qf2.set_expand_autonomously(true); 
 		baseline res2 = new baseline();
@@ -62,7 +62,7 @@ public class Experiment3 extends ExperimentsBase {
 			System.out.println("infinifilter polynomial FPR " + i);
 		}
 
-		Chaining qf3 = new Chaining(num_entries_power, bits_per_entry);
+		Chaining qf3 = new Chaining(num_entries_power, bits_per_entry, payload_size);
 		qf3.set_growth_style(Chaining.SizeExpansion.GEOMETRIC);
 		qf3.set_fpr_style(FingerprintGrowthStrategy.FalsePositiveRateExpansion.POLYNOMIAL);
 		qf3.set_expand_autonomously(true); 
@@ -76,7 +76,7 @@ public class Experiment3 extends ExperimentsBase {
 			System.out.println("geometric chaining polynomial FPR " + i);
 		}
 		
-		BasicInfiniFilter qf4 = new ChainedInfiniFilter(num_entries_power, bits_per_entry);
+		BasicInfiniFilter qf4 = new ChainedInfiniFilter(num_entries_power, bits_per_entry, payload_size);
 		qf4.set_fpr_style(FingerprintGrowthStrategy.FalsePositiveRateExpansion.TRIANGULAR);
 		qf4.set_expand_autonomously(true); 
 		baseline res4 = new baseline();

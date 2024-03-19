@@ -141,9 +141,9 @@ public class ChainedInfiniFilter extends BasicInfiniFilter implements Cloneable 
 	void handle_empty_fingerprint(long bucket_index, QuotientFilter current) {
 		long bucket1 = bucket_index;
 		long fingerprint = bucket_index >> secondary_IF.power_of_two_size;
-		long[] payload = current.get_payload(bucket_index);
 		long slot = bucket1 & slot_mask;
-		
+		long[] payload = current.get_payload(slot);
+
 		// In case the fingerprint is too long, we must chop it. This is here just for safety though, 
 		// as the slot width of the secondary IF should generally be large enough
 		long adjusted_fingerprint = fingerprint & fingerprint_mask; 

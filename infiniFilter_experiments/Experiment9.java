@@ -99,7 +99,7 @@ public class Experiment9 extends ExperimentsBase {
 
 		if (do_warmup) {
 			//int expansions_est = (num_cycles - num_entries_power) / 2;
-			ChainedInfiniFilter qf = new ChainedInfiniFilter(num_entries_power, bits_per_entry);
+			ChainedInfiniFilter qf = new ChainedInfiniFilter(num_entries_power, bits_per_entry, payload_size);
 			qf.set_expand_autonomously(true); 
 			qf.set_fpr_style(FalsePositiveRateExpansion.UNIFORM);
 			warmup(qf);	
@@ -108,7 +108,7 @@ public class Experiment9 extends ExperimentsBase {
 
 		baseline infinifilter_res = new baseline();
 		{
-			ChainedInfiniFilter qf = new ChainedInfiniFilter(num_entries_power, bits_per_entry);
+			ChainedInfiniFilter qf = new ChainedInfiniFilter(num_entries_power, bits_per_entry, payload_size);
 			qf.set_expand_autonomously(true); 
 			qf.set_fpr_style(fpr_style);
 			long starting_index = 0;
@@ -149,7 +149,7 @@ public class Experiment9 extends ExperimentsBase {
 
 		if (do_warmup) {
 			//int expansions_est = (num_cycles - num_entries_power) / 2;
-			DuplicatingChainedInfiniFilter qf = new DuplicatingChainedInfiniFilter(num_entries_power, bits_per_entry, false, -1);
+			DuplicatingChainedInfiniFilter qf = new DuplicatingChainedInfiniFilter(num_entries_power, bits_per_entry, false, -1, payload_size);
 			qf.set_expand_autonomously(true); 
 			qf.set_fpr_style(fpr_style);
 			warmup(qf);	
@@ -161,7 +161,7 @@ public class Experiment9 extends ExperimentsBase {
 		baseline aleph_regular = new baseline();
 		
 
-		DuplicatingChainedInfiniFilter qf = new DuplicatingChainedInfiniFilter(num_entries_power, bits_per_entry, true, -1);
+		DuplicatingChainedInfiniFilter qf = new DuplicatingChainedInfiniFilter(num_entries_power, bits_per_entry, true, -1, payload_size);
 		qf.set_expand_autonomously(true); 
 		qf.set_fpr_style(fpr_style);
 		long starting_index = 0;
@@ -419,7 +419,7 @@ public class Experiment9 extends ExperimentsBase {
 		boolean successful_insert = false;
 		long phys_entries = 0, max_entries = 0;
 		do {
-			successful_insert = qf.insert(insertion_index, false);
+			successful_insert = qf.insert(insertion_index, false, new long[]{0});
 			insertion_index++;
 			//System.out.println(qf.get_num_physical_entries() + "  " + qf.get_max_entries_before_expansion());
 			phys_entries = qf.get_num_physical_entries();
@@ -479,17 +479,17 @@ public class Experiment9 extends ExperimentsBase {
 
 		//System.out.println("inserting: " + num_entries_to_insert + " to capacity " + Math.pow(2, qf.power_of_two_size));
 
-		long slot_of_deleted_key = -1;
+		long[] slot_of_deleted_key = new long[]{-1};
 		int num_deletes = 0;
 		do {
 			slot_of_deleted_key = qf.delete(delete_index);
 			//boolean found = qf.search(delete_index);
 			delete_index++;
 			num_deletes++;
-		} while (delete_index < end_key && slot_of_deleted_key > -1);
+		} while (delete_index < end_key && slot_of_deleted_key[slot_of_deleted_key.length - 1] > -1);
 
-		if (slot_of_deleted_key == -1) {
-			System.out.println("a delete failed");
+		if (slot_of_deleted_key[slot_of_deleted_key.length - 1] == -1) {
+			System.out.println("an delete failed");
 			System.exit(1);
 		}
 

@@ -31,8 +31,7 @@ public class Experiment1 extends ExperimentsBase {
 	
 	public static void main(String[] args) {
 		parse_arguments(args);
-		int payload_size = 10;
-		
+
 		System.gc();
 		{
 			QuotientFilter qf = new QuotientFilter(num_entries_power, bits_per_entry, payload_size);

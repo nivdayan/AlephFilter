@@ -24,9 +24,9 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import bitmap_implementations.Bitmap;
-//import infiniFilter_experiments.Experiment1;
-//import infiniFilter_experiments.ExperimentsBase;
-//
+import infiniFilter_experiments.Experiment1;
+import infiniFilter_experiments.ExperimentsBase;
+
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
@@ -433,7 +433,7 @@ public class Tests {
 		int bits_per_entry = 8;
 		int num_entries_power = 5;
 		int num_entries = (int)Math.pow(2, num_entries_power);
-		QuotientFilter qf = new QuotientFilter(num_entries_power, bits_per_entry);
+		QuotientFilter qf = new QuotientFilter(num_entries_power, bits_per_entry, payload_size);
 
 		long fp1 = 1 << 4;
 		long fp2 = 1 << 3;
@@ -2105,81 +2105,83 @@ public class Tests {
 			}
 		}
 
-//		static public void test_FPR(Filter f, double model_FPR, long insertions) {
-//			ExperimentsBase.baseline results = new ExperimentsBase.baseline();
-//			Experiment1.scalability_experiment( f,  0, insertions, results);
-//			double FPR = results.metrics.get("FPR").get(0);
-//			//System.out.println(FPR + ", " + model_FPR);
-//			if (FPR > model_FPR * 1.1) {
-//				System.out.println("FPR is greater than expected");
-//				System.exit(1);
-//			}
-//			else if (FPR < model_FPR / 2) {
-//				System.out.println("FPR is lower than expected");
-//				System.exit(1);
-//			}
-//		}
-//
-//
-//		// testing the false positive rate is as expected
-//		static public void test24() {
-//			int num_entries_power = 15;
-//			long num_entries = (long)(Math.pow(2, num_entries_power) * 0.9);
-//			for (int i = 5; i <= 16; i++) {
-//				int bits_per_entry = i;
-//				QuotientFilter qf = new QuotientFilter(num_entries_power, bits_per_entry);
-//				qf.expand_autonomously = false;
-//				double model_FPR = Math.pow(2, - bits_per_entry + 3);
-//				test_FPR(qf, model_FPR, num_entries);
-//			}
-//		}
-//
-//		// testing the false positive rate is as expected
-//		static public void measure_cluster_length_distribution() {
-//			int num_entries_power = 20;
-//			long num_entries = (long)(Math.pow(2, num_entries_power) * 0.95);
-//			int bits_per_entry = 10;
-//			QuotientFilter qf = new QuotientFilter(num_entries_power, bits_per_entry);
-//			qf.expand_autonomously = false;
-//			double model_FPR = Math.pow(2, - bits_per_entry + 3);
-//			test_FPR(qf, model_FPR, num_entries);
-//
-//			qf.pretty_print();
-//
-//			Map<Integer,Integer> histogram = qf.compute_statistics();
-//
-//			for (Map.Entry<Integer, Integer> set : histogram.entrySet()) {
-//			    System.out.println(set.getKey() + ", " + set.getValue());
-//			}
-//
-//			System.out.println("cluster length  " + qf.avg_cluster_length);
-//
-//		}
-//
-//		// testing the false positive rate is as expected
-//		static public void test25() {
-//			int num_entries_power = 15;
-//			long num_entries = (long)(Math.pow(2, num_entries_power) * 0.9);
-//			for (int i = 5; i <= 16; i++) {
-//				int bits_per_entry = i;
-//				Filter qf = new CuckooFilter(num_entries_power, bits_per_entry);
-//				double model_FPR = Math.pow(2, - bits_per_entry + 3);
-//				test_FPR(qf, model_FPR, num_entries);
-//			}
-//		}
-//
-//		// testing the false positive rate is as expected
-//		static public void test26() {
-//			int num_entries = (int)Math.pow(2, 15);
-//			for (int i = 5; i <= 16; i++) {
-//				int bits_per_entry = i;
-//				Filter qf = new BloomFilter(num_entries, bits_per_entry);
-//				double model_FPR = Math.pow(2, - bits_per_entry * Math.log(2));
-//				test_FPR(qf, model_FPR, num_entries);
-//			}
-//		}
-//
-//		// this test ensures the basic infinifilter stops expanding after F expansions, where F is the original fingerprint size
+		static public void test_FPR(Filter f, double model_FPR, long insertions) {
+			ExperimentsBase.baseline results = new ExperimentsBase.baseline();
+			Experiment1.scalability_experiment( f,  0, insertions, results);
+			double FPR = results.metrics.get("FPR").get(0);
+			//System.out.println(FPR + ", " + model_FPR);
+			if (FPR > model_FPR * 1.1) {
+				System.out.println("FPR is greater than expected");
+				System.exit(1);
+			}
+			else if (FPR < model_FPR / 2) {
+				System.out.println("FPR is lower than expected");
+				System.exit(1);
+			}
+		}
+
+
+		// testing the false positive rate is as expected
+		static public void test24() {
+			int num_entries_power = 15;
+			int payload_size = 15;
+			long num_entries = (long)(Math.pow(2, num_entries_power) * 0.9);
+			for (int i = 5; i <= 16; i++) {
+				int bits_per_entry = i;
+				QuotientFilter qf = new QuotientFilter(num_entries_power, bits_per_entry, payload_size);
+				qf.expand_autonomously = false;
+				double model_FPR = Math.pow(2, - bits_per_entry + 3);
+				test_FPR(qf, model_FPR, num_entries);
+			}
+		}
+
+		// testing the false positive rate is as expected
+		static public void measure_cluster_length_distribution() {
+			int num_entries_power = 20;
+			int payload_size = 20;
+			long num_entries = (long)(Math.pow(2, num_entries_power) * 0.95);
+			int bits_per_entry = 10;
+			QuotientFilter qf = new QuotientFilter(num_entries_power, bits_per_entry, payload_size);
+			qf.expand_autonomously = false;
+			double model_FPR = Math.pow(2, - bits_per_entry + 3);
+			test_FPR(qf, model_FPR, num_entries);
+
+			qf.pretty_print();
+
+			Map<Integer,Integer> histogram = qf.compute_statistics();
+
+			for (Map.Entry<Integer, Integer> set : histogram.entrySet()) {
+			    System.out.println(set.getKey() + ", " + set.getValue());
+			}
+
+			System.out.println("cluster length  " + qf.avg_cluster_length);
+
+		}
+
+		// testing the false positive rate is as expected
+		static public void test25() {
+			int num_entries_power = 15;
+			long num_entries = (long)(Math.pow(2, num_entries_power) * 0.9);
+			for (int i = 5; i <= 16; i++) {
+				int bits_per_entry = i;
+				Filter qf = new CuckooFilter(num_entries_power, bits_per_entry);
+				double model_FPR = Math.pow(2, - bits_per_entry + 3);
+				test_FPR(qf, model_FPR, num_entries);
+			}
+		}
+
+		// testing the false positive rate is as expected
+		static public void test26() {
+			int num_entries = (int)Math.pow(2, 15);
+			for (int i = 5; i <= 16; i++) {
+				int bits_per_entry = i;
+				Filter qf = new BloomFilter(num_entries, bits_per_entry);
+				double model_FPR = Math.pow(2, - bits_per_entry * Math.log(2));
+				test_FPR(qf, model_FPR, num_entries);
+			}
+		}
+
+		// this test ensures the basic infinifilter stops expanding after F expansions, where F is the original fingerprint size
 		static public void test27() {
 			int bits_per_entry = 10;
 			int num_entries_power = 3;

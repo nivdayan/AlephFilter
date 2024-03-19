@@ -17,6 +17,7 @@ limitations under the License.
 package filters;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 import filters.FingerprintGrowthStrategy.FalsePositiveRateExpansion;
 
@@ -514,7 +515,7 @@ public class DuplicatingChainedInfiniFilter extends ChainedInfiniFilter implemen
 			success = delete_duplicates(slot_index, false);
 		}*/
 		
-		return success ? new long[]{-1} : new long[]{1} ;
+		return success ? new long[]{1} : new long[]{-1} ;
 	}
 	
 	boolean delete_duplicates(long slot_index, boolean rejuvenation) {
