@@ -1,4 +1,0 @@
-INDEX VERSION 1.131+/home/smaghrebi/research/alephfilter/workspace/.metadata/.plugins/org.eclipse.jdt.core
-646308851.index
-3842426239.index
-1865797976.index
