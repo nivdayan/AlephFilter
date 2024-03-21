@@ -152,6 +152,7 @@ public static long[] makeBitVector(long size, int bitsPerElement) {
 	long[] bitVector = new long[unitIndex + 1];
 	return bitVector;
 }
+
 /**
 Returns the index of the most significant bit in state "true".
 Returns -1 if no bit is in state "true".

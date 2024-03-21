@@ -464,7 +464,7 @@ public class DuplicatingChainedInfiniFilter extends ChainedInfiniFilter implemen
 		if (matching_fingerprint == empty_fingerprint) {
 			
 			if (lazy_void_deletes) {
-				filter.set(matching_fingerprint_index * (bitPerEntry + payloadSize) + 3, true);
+				filter.set(matching_fingerprint_index * (bitPerEntry) + 3, true);
 				deleted_void_entries.add(slot_index);
 			}
 			else {
@@ -474,7 +474,7 @@ public class DuplicatingChainedInfiniFilter extends ChainedInfiniFilter implemen
 		else {
 			
 			if (lazy_new_deletes) {
-				filter.set(matching_fingerprint_index * (bitPerEntry + payloadSize) + 3, true);
+				filter.set(matching_fingerprint_index * (bitPerEntry) + 3, true);
 				deleted_void_entries.add(slot_index);
 			}
 			else {

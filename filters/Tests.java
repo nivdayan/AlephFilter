@@ -1,19 +1,3 @@
-/*
- * Copyright 2024 Niv Dayan
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
- */
-
 package filters;
 
 import java.util.BitSet;
@@ -33,14 +17,16 @@ import java.nio.charset.StandardCharsets;
 
 public class Tests {
 
-	static public BitSet set_slot_in_test(BitSet result, int bits_per_entry, int payload_size,
+	static public BitSet set_slot_in_test(long entries, BitSet result, int bits_per_entry, int payload_size,
 										  int slot, boolean is_occupied, boolean is_continuation, boolean is_shifted, long fingerprint, long[] payload) {
-		int index = (bits_per_entry + payload_size) * slot;
-		result.set(index++, is_occupied); 
-		result.set(index++, is_continuation); 
-		result.set(index++, is_shifted); 
+		long num_entries = entries;
+		int fp_index = (bits_per_entry) * slot;
+		int payload_index = (int) (num_entries * bits_per_entry + slot * payload_size);
+		result.set(fp_index++, is_occupied);
+		result.set(fp_index++, is_continuation);
+		result.set(fp_index++, is_shifted);
 		for (int i = 0; i < bits_per_entry - 3; i++) {
-			result.set(index++, Bitmap.get_fingerprint_bit(i, fingerprint));
+			result.set(fp_index++, Bitmap.get_fingerprint_bit(i, fingerprint));
 		}
 		for (int i = 0; i < payload.length; i++) {
 			int offset;
@@ -51,14 +37,36 @@ public class Tests {
 			for (int j = 0; j < offset; j++) {
 				boolean bit = Bitmap.get_fingerprint_bit(j, payload[i]);
 				// System.out.println(index + " " + this_index + " " + this_long + " " + bit);
-				result.set(index++, bit);
+				result.set(payload_index++, bit);
 			}
 		}
 		return result;
 	}
-	
 
-	static public BitSet set_slot_in_test(BitSet result, int bits_per_entry, int payload_size, int slot, boolean is_occupied, boolean is_continuation, boolean is_shifted, String fingerprint, long[] payload) {
+	static public BitSet set_slot_in_test(BitSet result, int bits_per_entry, int payload_size,
+										  int slot, boolean is_occupied, boolean is_continuation, boolean is_shifted, long fingerprint, long[] payload) {
+		int fp_index = (bits_per_entry + payload_size) * slot;
+		result.set(fp_index++, is_occupied);
+		result.set(fp_index++, is_continuation);
+		result.set(fp_index++, is_shifted);
+		for (int i = 0; i < bits_per_entry - 3; i++) {
+			result.set(fp_index++, Bitmap.get_fingerprint_bit(i, fingerprint));
+		}
+		for (int i = 0; i < payload.length; i++) {
+			int offset;
+			if (i == 0)
+				offset = payload_size % Long.SIZE;
+			else
+				offset = payload_size;
+			for (int j = 0; j < offset; j++) {
+				boolean bit = Bitmap.get_fingerprint_bit(j, payload[i]);
+				// System.out.println(index + " " + this_index + " " + this_long + " " + bit);
+				result.set(fp_index++, bit);
+			}
+		}
+		return result;
+	}
+	static public BitSet set_slot_in_test(long entries, BitSet result, int bits_per_entry, int payload_size, int slot, boolean is_occupied, boolean is_continuation, boolean is_shifted, String fingerprint, long[] payload) {
 		long l_fingerprint = 0;
 		for (int i = 0; i < fingerprint.length(); i++) {
 			char c = fingerprint.charAt(i);
@@ -67,11 +75,11 @@ public class Tests {
 			}
 		}
 
-		return set_slot_in_test(result, bits_per_entry, payload_size, slot, is_occupied, is_continuation, is_shifted, l_fingerprint, payload);
+		return set_slot_in_test(entries, result, bits_per_entry, payload_size, slot, is_occupied, is_continuation, is_shifted, l_fingerprint, payload);
 	}
 	
 	static public boolean check_equality(QuotientFilter qf, BitSet bs, boolean check_also_fingerprints) {
-		for (int i = 0; i < bs.size(); i++) {
+		for (int i = 0; i < qf.get_start_of_fingerprint_mirroring(); i++) {
 			// System.out.println("bit " + i + " diff set_bs: " + bs.get(i) + " qf: " + qf.get_bit_at_offset(i));
 			if (check_also_fingerprints || (i % qf.bitPerEntry == 0 || i % qf.bitPerEntry == 1 || i % qf.bitPerEntry == 2)) {
 				if (qf.get_bit_at_offset(i) != bs.get(i)) {
@@ -104,17 +112,19 @@ public class Tests {
 		qf.insert(fingerprint0, 2, false, new long[]{0});
 		qf.insert(fingerprint0, 1, false, new long[]{10});
 
+		// qf.pretty_print();
 		// these are the expecting resulting is_occupied, is_continuation, and is_shifted bits
 		// for all slots contigously. We do not store the fingerprints here
 		BitSet result = new BitSet(num_entries * (bits_per_entry + payload_size));
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 0, false, false, false, fingerprint0, new long[]{0});
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 1, true, false, false, fingerprint0, new long[]{10});
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 2, true, true, true, fingerprint0, new long[]{10});
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 3, false, true, true, fingerprint0, new long[]{10});
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 4, true, false, true, fingerprint0, new long[]{0});
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 5, false, false, true, fingerprint1, new long[]{12});
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 6, false, false, false, fingerprint0, new long[]{0});
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 7, true, false, false, fingerprint0, new long[]{14});
+
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 0, false, false, false, fingerprint0, new long[]{0});
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 1, true, false, false, fingerprint0, new long[]{10});
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 2, true, true, true, fingerprint0, new long[]{10});
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 3, false, true, true, fingerprint0, new long[]{10});
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 4, true, false, true, fingerprint0, new long[]{0});
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 5, false, false, true, fingerprint1, new long[]{12});
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 6, false, false, false, fingerprint0, new long[]{0});
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 7, true, false, false, fingerprint0, new long[]{14});
 
 		//qf.pretty_print();
 		//qf.print_filter_summary();
@@ -148,14 +158,14 @@ public class Tests {
 		// these are the expecting resulting is_occupied, is_continuation, and is_shifted bits
 		// for all slots contigously. We do not store the fingerprints here
 		BitSet result = new BitSet(num_entries * (bits_per_entry + payload_size));
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 0, false, false, false, fingerprint0, new long[]{});
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 1, true, false, false, fingerprint0, new long[]{});
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 2, true, true, true, fingerprint0, new long[]{});
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 3, false, true, true, fingerprint0, new long[]{});
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 4, true, false, true, fingerprint0, new long[]{});
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 5, false, false, true, fingerprint1, new long[]{});
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 6, false, false, false, fingerprint0, new long[]{});
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 7, true, false, false, fingerprint0, new long[]{});
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 0, false, false, false, fingerprint0, new long[]{});
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 1, true, false, false, fingerprint0, new long[]{});
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 2, true, true, true, fingerprint0, new long[]{});
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 3, false, true, true, fingerprint0, new long[]{});
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 4, true, false, true, fingerprint0, new long[]{});
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 5, false, false, true, fingerprint1, new long[]{});
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 6, false, false, false, fingerprint0, new long[]{});
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 7, true, false, false, fingerprint0, new long[]{});
 		//qf.pretty_print();
 		//qf.print_filter_summary();
 
@@ -186,15 +196,15 @@ public class Tests {
 		qf.insert(0, 6, false, new long[]{0});
 
 		BitSet result = new BitSet(num_entries * (bits_per_entry + payload_size));
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 0, false, false, false, 0, new long[]{0});
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 1, true, false, false, 0, new long[]{1});
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 2, false, true, true, 0, new long[]{2});
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 3, true, false, false, 0, new long[]{3});
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 4, true, true, true, 0, new long[]{4});
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 5, false, true, true, 0, new long[]{5});
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 6, true, false, true, 0, new long[]{6});
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 7, false, false, true, 0, new long[]{7});
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 8, false, true, true, 0, new long[]{0});
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 0, false, false, false, 0, new long[]{0});
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 1, true, false, false, 0, new long[]{1});
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 2, false, true, true, 0, new long[]{2});
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 3, true, false, false, 0, new long[]{3});
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 4, true, true, true, 0, new long[]{4});
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 5, false, true, true, 0, new long[]{5});
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 6, true, false, true, 0, new long[]{6});
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 7, false, false, true, 0, new long[]{7});
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 8, false, true, true, 0, new long[]{0});
 		check_equality(qf, result, false);
 
 	}
@@ -325,8 +335,8 @@ public class Tests {
 		//qf.pretty_print();
 
 		BitSet result = new BitSet(num_entries * (bits_per_entry + payload_size));
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 2, true, false, false, fp2, new long[]{4});
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 4, true, false, false, fp3, new long[]{7});
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 2, true, false, false, fp2, new long[]{4});
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 4, true, false, false, fp3, new long[]{7});
 		check_equality(qf, result, true);
 		//qf.pretty_print();
 	}
@@ -375,15 +385,15 @@ public class Tests {
 		//qf.pretty_print();
 
 		BitSet result = new BitSet(num_entries * (bits_per_entry + payload_size));
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 1, true, false, false, 0, new long[1]);
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 2, true, true, true, 0, new long[1]);
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 3, true, false, true, 0, new long[1]);
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 4, false, false, true, 0, new long[1]);
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 5, false, true, true, 0, new long[1]);
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 6, true, false, false, 0, new long[1]);
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 7, true, true, true, 0, new long[1]);
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 8, false, true, true, 0, new long[1]);
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 9, false, false, true, 0, new long[1]);
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 1, true, false, false, 0, new long[1]);
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 2, true, true, true, 0, new long[1]);
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 3, true, false, true, 0, new long[1]);
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 4, false, false, true, 0, new long[1]);
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 5, false, true, true, 0, new long[1]);
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 6, true, false, false, 0, new long[1]);
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 7, true, true, true, 0, new long[1]);
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 8, false, true, true, 0, new long[1]);
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 9, false, false, true, 0, new long[1]);
 
 		check_equality(qf, result, true);
 		//qf.pretty_print();
@@ -417,13 +427,13 @@ public class Tests {
 		//qf.pretty_print();
 
 		BitSet result = new BitSet(num_entries * (bits_per_entry + payload_size));
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 1, true, false, false, 0, new long[]{1});
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 2, true, true, true, 0, new long[]{0});
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 3, false, false, true, 0, new long[]{2});
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 4, true, true, true, 0, new long[]{3});
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 5, true, false, true, 0, new long[]{5});
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 6, false, true, true, 0, new long[]{6});
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 7, false, false, true, 0, new long[]{7});
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 1, true, false, false, 0, new long[]{1});
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 2, true, true, true, 0, new long[]{0});
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 3, false, false, true, 0, new long[]{2});
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 4, true, true, true, 0, new long[]{3});
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 5, true, false, true, 0, new long[]{5});
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 6, false, true, true, 0, new long[]{6});
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 7, false, false, true, 0, new long[]{7});
 		check_equality(qf, result, true);
 	}
 
@@ -480,15 +490,15 @@ public class Tests {
 		qf.pretty_print();
 
 		BitSet result = new BitSet(num_entries * bits_per_entry);
-		result = set_slot_in_test(result, bits_per_entry, 1, true, false, false, 0);
-		result = set_slot_in_test(result, bits_per_entry, 2, true, true, true, 0);
-		result = set_slot_in_test(result, bits_per_entry, 3, true, false, true, 0);
-		result = set_slot_in_test(result, bits_per_entry, 4, false, false, true, 0);
-		result = set_slot_in_test(result, bits_per_entry, 5, false, true, true, 0);
-		result = set_slot_in_test(result, bits_per_entry, 6, true, false, false, 0);
-		result = set_slot_in_test(result, bits_per_entry, 7, true, true, true, 0);
-		result = set_slot_in_test(result, bits_per_entry, 8, false, true, true, 0);
-		result = set_slot_in_test(result, bits_per_entry, 9, false, false, true, 0);
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, 1, true, false, false, 0);
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, 2, true, true, true, 0);
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, 3, true, false, true, 0);
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, 4, false, false, true, 0);
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, 5, false, true, true, 0);
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, 6, true, false, false, 0);
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, 7, true, true, true, 0);
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, 8, false, true, true, 0);
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, 9, false, false, true, 0);
 
 		check_equality(qf, result, true);
 		//qf.pretty_print();
@@ -660,16 +670,16 @@ public class Tests {
 
 		int num_entries = 1 << ++num_entries_power;
 		BitSet result = new BitSet(num_entries * (bits_per_entry + payload_size));
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 0, false, false, false, "0000000", new long[]{0});
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 1, true, false, false, "1100101", new long[]{4});
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 2, true, false, false, "1010101", new long[]{5});
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 3, false, false, false, "0000000", new long[]{0});
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 4, false, false, false, "0000000", new long[]{0});
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 5, true, false, false, "0010001", new long[]{3});
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 6, false, false, false, "0000000", new long[]{0});
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 7, true, false, false, "0101101", new long[]{1});
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 8, true, false, false, "1001001", new long[]{2});
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 9, false, true, true, "0111001", new long[]{6});
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 0, false, false, false, "0000000", new long[]{0});
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 1, true, false, false, "1100101", new long[]{4});
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 2, true, false, false, "1010101", new long[]{5});
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 3, false, false, false, "0000000", new long[]{0});
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 4, false, false, false, "0000000", new long[]{0});
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 5, true, false, false, "0010001", new long[]{3});
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 6, false, false, false, "0000000", new long[]{0});
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 7, true, false, false, "0101101", new long[]{1});
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 8, true, false, false, "1001001", new long[]{2});
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 9, false, true, true, "0111001", new long[]{6});
 		//qf.pretty_print();
 		check_equality(qf, result, true);
 
@@ -772,7 +782,7 @@ public class Tests {
 		//qf.pretty_print();
 
 		BitSet result = new BitSet((int)qf.get_logical_num_slots() * (bits_per_entry + payload_size));
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 0, true, false, false, 3, new long[]{2});
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 0, true, false, false, 3, new long[]{2});
 
 		check_equality(qf, result, true);
 	}
@@ -806,8 +816,8 @@ public class Tests {
 
 		BitSet result = new BitSet(num_entries * (bits_per_entry + payload_size));
 
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 5, true, false, false, 16, new long[]{1});
-		result = set_slot_in_test(result, bits_per_entry, payload_size, 6, false, true, true, fp2, new long[]{7});
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 5, true, false, false, 16, new long[]{1});
+		result = set_slot_in_test(qf.get_logical_num_slots_plus_extensions(), result, bits_per_entry, payload_size, 6, false, true, true, fp2, new long[]{7});
 		check_equality(qf, result, true);
 		//qf.pretty_print();
 	}
