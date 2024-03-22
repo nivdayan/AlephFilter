@@ -51,10 +51,9 @@ public class Payload_Experiment extends ExperimentsBase {
         }
 
         int[] payload_sizes = {
-        //        0,
-        //        32,
+                0,
+                32,
                 128,
-        //        1 << 16
         };
         for (int ps : payload_sizes) {
             System.gc();
