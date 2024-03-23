@@ -53,7 +53,7 @@ public class Payload_Experiment extends ExperimentsBase {
         int[] payload_sizes = {
                 0,
                 32,
-                128,
+                512,
         };
         for (int ps : payload_sizes) {
             System.gc();
@@ -61,12 +61,15 @@ public class Payload_Experiment extends ExperimentsBase {
             System.out.println(payload_size);
             baseline original_qf_res = new baseline();
             {
-                QuotientFilter orig = new QuotientFilter((num_entries_power + num_cycles) / 2, bits_per_entry, payload_size);
+                QuotientFilter orig = new QuotientFilter((num_entries_power + num_cycles) / 2 + 5, bits_per_entry, payload_size);
                 orig.set_expand_autonomously(false);
                 long starting_index = 0;
-                for (int i = num_entries_power; i < (num_entries_power + num_cycles) / 2 + 1; i++) {
-                    long end_key = (int) (Math.pow(2, i) * 0.90); //
+                for (int i = 1; i < num_cycles; i++) {
+                    long end_key = (int) (Math.pow(2, (num_entries_power + num_cycles) / 2 + 5) * i / num_cycles); //
                     scalability_experiment(orig, starting_index, end_key, original_qf_res);
+                    System.out.println(orig.num_expansions);
+                    System.out.println(orig.get_utilization());
+                    System.out.println(orig.get_physcial_num_slots());
                     starting_index = end_key;
                     System.out.println("static quotient filter " + i);
                 }
@@ -74,65 +77,72 @@ public class Payload_Experiment extends ExperimentsBase {
 
             System.gc();
             System.out.println("finished quotient");
-
-            baseline chained_IF_res = new baseline();
-            {
-                BasicInfiniFilter qf = new ChainedInfiniFilter(num_entries_power, bits_per_entry, payload_size);
-                qf.set_expand_autonomously(true);
-                long starting_index = 0;
-                long end_key = qf.get_max_entries_before_expansion() - 1;
-                for (int i = num_entries_power; i <= num_cycles; i++) {
-                    scalability_experiment(qf, starting_index, end_key, chained_IF_res);
-                    starting_index = end_key;
-                    end_key = qf.get_max_entries_before_expansion() * 2 - 1;
-                    System.out.println("infinifilter " + i);
-                }
-            }
-            System.out.println("finished infinifilter");
-            System.gc();
-
-            baseline bit_sacrifice_res = new baseline();
-            {
-                FingerprintSacrifice qf2 = new FingerprintSacrifice(num_entries_power, bits_per_entry, payload_size);
-                qf2.set_expand_autonomously(true);
-                long starting_index = 0;
-                long end_key = qf2.get_max_entries_before_expansion() - 1;
-                for (int i = num_entries_power; i <= num_cycles && qf2.get_fingerprint_length() > 0; i++) {
-                    scalability_experiment(qf2, starting_index, end_key, bit_sacrifice_res);
-                    starting_index = end_key;
-                    end_key = qf2.get_max_entries_before_expansion() * 2 - 1;
-                    System.out.println("bit sacrifice " + i);
-                }
-            }
-            System.out.println("finished bit sacrifice");
-
-            System.gc();
-
-            baseline geometric_expansion_res = new baseline();
-            {
-                Chaining qf3 = new Chaining(num_entries_power, bits_per_entry, payload_size);
-                qf3.set_expand_autonomously(true);
-                long starting_index = 0;
-                long end_key = qf3.get_max_entries_before_expansion() - 1;
-                for (int i = num_entries_power; i <= num_cycles - 1; i++) {
-                    scalability_experiment(qf3, starting_index, end_key, geometric_expansion_res);
-                    starting_index = end_key + 1;
-                    end_key = (long) (qf3.get_max_entries_before_expansion() * 2 + starting_index - 1);
-                    //System.out.println("thresh  " + qf3.max_entries_before_expansion);
-
-                    //(long)(Math.pow(2, power_of_two_size) * expansion_threshold)
-                    System.out.println("geometric chaining " + i);
-                }
-            }
-            System.out.println("finished geometric chaining");
+            payload_sizes = new int[]{
+                    0,
+                    32,
+                    128,
+            };
+//            baseline chained_IF_res = new baseline();
+//            {
+//                BasicInfiniFilter qf = new ChainedInfiniFilter(num_entries_power, bits_per_entry, payload_size);
+//                qf.set_expand_autonomously(true);
+//                long starting_index = 0;
+//                long end_key = qf.get_max_entries_before_expansion() - 1;
+//                for (int i = num_entries_power; i <= num_cycles; i++) {
+//                    scalability_experiment(qf, starting_index, end_key, chained_IF_res);
+//                    System.out.println(qf.num_expansions);
+//                    starting_index = end_key;
+//                    end_key = qf.get_max_entries_before_expansion() * 2 - 1;
+//                    System.out.println("infinifilter " + i);
+//                }
+//            }
+//            System.out.println("finished infinifilter");
+//            System.gc();
+//
+//            baseline bit_sacrifice_res = new baseline();
+//            {
+//                FingerprintSacrifice qf2 = new FingerprintSacrifice(num_entries_power, bits_per_entry, payload_size);
+//                qf2.set_expand_autonomously(true);
+//                long starting_index = 0;
+//                long end_key = qf2.get_max_entries_before_expansion() - 1;
+//                for (int i = num_entries_power; i <= num_cycles && qf2.get_fingerprint_length() > 0; i++) {
+//                    scalability_experiment(qf2, starting_index, end_key, bit_sacrifice_res);
+//                    System.out.println(qf2.num_expansions);
+//                    starting_index = end_key;
+//                    end_key = qf2.get_max_entries_before_expansion() * 2 - 1;
+//                    System.out.println("bit sacrifice " + i);
+//                }
+//            }
+//            System.out.println("finished bit sacrifice");
+//
+//            System.gc();
+//
+//            baseline geometric_expansion_res = new baseline();
+//            {
+//                Chaining qf3 = new Chaining(num_entries_power, bits_per_entry, payload_size);
+//                qf3.set_expand_autonomously(true);
+//                long starting_index = 0;
+//                long end_key = qf3.get_max_entries_before_expansion() - 1;
+//                for (int i = num_entries_power; i <= num_cycles - 1; i++) {
+//                    scalability_experiment(qf3, starting_index, end_key, geometric_expansion_res);
+//                    System.out.println(qf3.num_expansions);
+//                    starting_index = end_key + 1;
+//                    end_key = (long) (qf3.get_max_entries_before_expansion() * 2 + starting_index - 1);
+//                    //System.out.println("thresh  " + qf3.max_entries_before_expansion);
+//
+//                    //(long)(Math.pow(2, power_of_two_size) * expansion_threshold)
+//                    System.out.println("geometric chaining " + i);
+//                }
+//            }
+//            System.out.println("finished geometric chaining");
 
             int commas_before = 1;
             int commas_after = 5;
             System.out.println("Insertion Time");
             original_qf_res.print("num_entries", "insertion_time", commas_before++, commas_after--);
-            chained_IF_res.print("num_entries", "insertion_time", commas_before++, commas_after--);
-            bit_sacrifice_res.print("num_entries", "insertion_time", commas_before++, commas_after--);
-            geometric_expansion_res.print("num_entries", "insertion_time", commas_before++, commas_after--);
+//            chained_IF_res.print("num_entries", "insertion_time", commas_before++, commas_after--);
+//            bit_sacrifice_res.print("num_entries", "insertion_time", commas_before++, commas_after--);
+//            geometric_expansion_res.print("num_entries", "insertion_time", commas_before++, commas_after--);
             // bloom_res.print("num_entries", "insertion_time", commas_before++, commas_after--);
             // cuckoo_res.print("num_entries", "insertion_time", commas_before++, commas_after--);
 
@@ -142,9 +152,9 @@ public class Payload_Experiment extends ExperimentsBase {
             commas_after = 5;
             System.out.println("Query Time");
             original_qf_res.print("num_entries", "query_time", commas_before++, commas_after--);
-            chained_IF_res.print("num_entries", "query_time", commas_before++, commas_after--);
-            bit_sacrifice_res.print("num_entries", "query_time", commas_before++, commas_after--);
-            geometric_expansion_res.print("num_entries", "query_time", commas_before++, commas_after--);
+//            chained_IF_res.print("num_entries", "query_time", commas_before++, commas_after--);
+//            bit_sacrifice_res.print("num_entries", "query_time", commas_before++, commas_after--);
+//            geometric_expansion_res.print("num_entries", "query_time", commas_before++, commas_after--);
             // bloom_res.print("num_entries", "query_time", commas_before++, commas_after--);
             // cuckoo_res.print("num_entries", "query_time", commas_before++, commas_after--);
 
@@ -153,9 +163,9 @@ public class Payload_Experiment extends ExperimentsBase {
             commas_before = 1;
             commas_after = 5;
             original_qf_res.print("num_entries", "FPR", commas_before++, commas_after--);
-            chained_IF_res.print("num_entries", "FPR", commas_before++, commas_after--);
-            bit_sacrifice_res.print("num_entries", "FPR", commas_before++, commas_after--);
-            geometric_expansion_res.print("num_entries", "FPR", commas_before++, commas_after--);
+//            chained_IF_res.print("num_entries", "FPR", commas_before++, commas_after--);
+//            bit_sacrifice_res.print("num_entries", "FPR", commas_before++, commas_after--);
+//            geometric_expansion_res.print("num_entries", "FPR", commas_before++, commas_after--);
             // bloom_res.print("num_entries", "FPR", commas_before++, commas_after--);
             // cuckoo_res.print("num_entries", "FPR", commas_before++, commas_after--);
 
@@ -164,9 +174,9 @@ public class Payload_Experiment extends ExperimentsBase {
             commas_before = 1;
             commas_after = 5;
             original_qf_res.print("num_entries", "memory", commas_before++, commas_after--);
-            chained_IF_res.print("num_entries", "memory", commas_before++, commas_after--);
-            bit_sacrifice_res.print("num_entries", "memory", commas_before++, commas_after--);
-            geometric_expansion_res.print("num_entries", "memory", commas_before++, commas_after--);
+//            chained_IF_res.print("num_entries", "memory", commas_before++, commas_after--);
+//            bit_sacrifice_res.print("num_entries", "memory", commas_before++, commas_after--);
+//            geometric_expansion_res.print("num_entries", "memory", commas_before++, commas_after--);
             // bloom_res.print("num_entries", "memory", commas_before++, commas_after--);
             // cuckoo_res.print("num_entries", "memory", commas_before++, commas_after--);
 
@@ -200,9 +210,9 @@ public class Payload_Experiment extends ExperimentsBase {
                 commas_before = 1;
                 commas_after = 5;
                 original_qf_res.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, insertion_writer);
-                chained_IF_res.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, insertion_writer);
-                bit_sacrifice_res.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, insertion_writer);
-                geometric_expansion_res.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, insertion_writer);
+//                chained_IF_res.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, insertion_writer);
+//                bit_sacrifice_res.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, insertion_writer);
+//                geometric_expansion_res.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, insertion_writer);
                 // bloom_res.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, insertion_writer);
                 // cuckoo_res.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, insertion_writer);
 
@@ -213,9 +223,9 @@ public class Payload_Experiment extends ExperimentsBase {
                 commas_before = 1;
                 commas_after = 5;
                 original_qf_res.print_to_file("num_entries", "query_time", commas_before++, commas_after--, reads_writer);
-                chained_IF_res.print_to_file("num_entries", "query_time", commas_before++, commas_after--, reads_writer);
-                bit_sacrifice_res.print_to_file("num_entries", "query_time", commas_before++, commas_after--, reads_writer);
-                geometric_expansion_res.print_to_file("num_entries", "query_time", commas_before++, commas_after--, reads_writer);
+//                chained_IF_res.print_to_file("num_entries", "query_time", commas_before++, commas_after--, reads_writer);
+//                bit_sacrifice_res.print_to_file("num_entries", "query_time", commas_before++, commas_after--, reads_writer);
+//                geometric_expansion_res.print_to_file("num_entries", "query_time", commas_before++, commas_after--, reads_writer);
                 // bloom_res.print_to_file("num_entries", "query_time", commas_before++, commas_after--, reads_writer);
                 // cuckoo_res.print_to_file("num_entries", "query_time", commas_before++, commas_after--, reads_writer);
 
@@ -226,9 +236,9 @@ public class Payload_Experiment extends ExperimentsBase {
                 commas_before = 1;
                 commas_after = 5;
                 original_qf_res.print_to_file("num_entries", "FPR", commas_before++, commas_after--, FPR_writer);
-                chained_IF_res.print_to_file("num_entries", "FPR", commas_before++, commas_after--, FPR_writer);
-                bit_sacrifice_res.print_to_file("num_entries", "FPR", commas_before++, commas_after--, FPR_writer);
-                geometric_expansion_res.print_to_file("num_entries", "FPR", commas_before++, commas_after--, FPR_writer);
+//                chained_IF_res.print_to_file("num_entries", "FPR", commas_before++, commas_after--, FPR_writer);
+//                bit_sacrifice_res.print_to_file("num_entries", "FPR", commas_before++, commas_after--, FPR_writer);
+//                geometric_expansion_res.print_to_file("num_entries", "FPR", commas_before++, commas_after--, FPR_writer);
                 // bloom_res.print_to_file("num_entries", "FPR", commas_before++, commas_after--, FPR_writer);
                 // cuckoo_res.print_to_file("num_entries", "FPR", commas_before++, commas_after--, FPR_writer);
 
@@ -240,9 +250,9 @@ public class Payload_Experiment extends ExperimentsBase {
                 commas_before = 1;
                 commas_after = 5;
                 original_qf_res.print_to_file("num_entries", "memory", commas_before++, commas_after--, mem_writer);
-                chained_IF_res.print_to_file("num_entries", "memory", commas_before++, commas_after--, mem_writer);
-                bit_sacrifice_res.print_to_file("num_entries", "memory", commas_before++, commas_after--, mem_writer);
-                geometric_expansion_res.print_to_file("num_entries", "memory", commas_before++, commas_after--, mem_writer);
+//                chained_IF_res.print_to_file("num_entries", "memory", commas_before++, commas_after--, mem_writer);
+//                bit_sacrifice_res.print_to_file("num_entries", "memory", commas_before++, commas_after--, mem_writer);
+//                geometric_expansion_res.print_to_file("num_entries", "memory", commas_before++, commas_after--, mem_writer);
                 // bloom_res.print_to_file("num_entries", "memory", commas_before++, commas_after--, mem_writer);
                 // cuckoo_res.print_to_file("num_entries", "memory", commas_before++, commas_after--, mem_writer);
 
@@ -253,9 +263,9 @@ public class Payload_Experiment extends ExperimentsBase {
                 commas_before = 1;
                 commas_after = 5;
                 original_qf_res.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, all_writer);
-                chained_IF_res.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, all_writer);
-                bit_sacrifice_res.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, all_writer);
-                geometric_expansion_res.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, all_writer);
+//                chained_IF_res.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, all_writer);
+//                bit_sacrifice_res.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, all_writer);
+//                geometric_expansion_res.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, all_writer);
                 // bloom_res.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, all_writer);
                 // cuckoo_res.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, all_writer);
 
@@ -264,9 +274,9 @@ public class Payload_Experiment extends ExperimentsBase {
                 commas_before = 1;
                 commas_after = 5;
                 original_qf_res.print_to_file("num_entries", "query_time", commas_before++, commas_after--, all_writer);
-                chained_IF_res.print_to_file("num_entries", "query_time", commas_before++, commas_after--, all_writer);
-                bit_sacrifice_res.print_to_file("num_entries", "query_time", commas_before++, commas_after--, all_writer);
-                geometric_expansion_res.print_to_file("num_entries", "query_time", commas_before++, commas_after--, all_writer);
+//                chained_IF_res.print_to_file("num_entries", "query_time", commas_before++, commas_after--, all_writer);
+//                bit_sacrifice_res.print_to_file("num_entries", "query_time", commas_before++, commas_after--, all_writer);
+//                geometric_expansion_res.print_to_file("num_entries", "query_time", commas_before++, commas_after--, all_writer);
                 // bloom_res.print_to_file("num_entries", "query_time", commas_before++, commas_after--, all_writer);
                 // cuckoo_res.print_to_file("num_entries", "query_time", commas_before++, commas_after--, all_writer);
 
@@ -275,9 +285,9 @@ public class Payload_Experiment extends ExperimentsBase {
                 commas_before = 1;
                 commas_after = 5;
                 original_qf_res.print_to_file("num_entries", "FPR", commas_before++, commas_after--, all_writer);
-                chained_IF_res.print_to_file("num_entries", "FPR", commas_before++, commas_after--, all_writer);
-                bit_sacrifice_res.print_to_file("num_entries", "FPR", commas_before++, commas_after--, all_writer);
-                geometric_expansion_res.print_to_file("num_entries", "FPR", commas_before++, commas_after--, all_writer);
+//                chained_IF_res.print_to_file("num_entries", "FPR", commas_before++, commas_after--, all_writer);
+//                bit_sacrifice_res.print_to_file("num_entries", "FPR", commas_before++, commas_after--, all_writer);
+//                geometric_expansion_res.print_to_file("num_entries", "FPR", commas_before++, commas_after--, all_writer);
                 // bloom_res.print_to_file("num_entries", "FPR", commas_before++, commas_after--, all_writer);
                 // cuckoo_res.print_to_file("num_entries", "FPR", commas_before++, commas_after--, all_writer);
 
@@ -286,9 +296,9 @@ public class Payload_Experiment extends ExperimentsBase {
                 commas_before = 1;
                 commas_after = 5;
                 original_qf_res.print_to_file("num_entries", "memory", commas_before++, commas_after--, all_writer);
-                chained_IF_res.print_to_file("num_entries", "memory", commas_before++, commas_after--, all_writer);
-                bit_sacrifice_res.print_to_file("num_entries", "memory", commas_before++, commas_after--, all_writer);
-                geometric_expansion_res.print_to_file("num_entries", "memory", commas_before++, commas_after--, all_writer);
+//                chained_IF_res.print_to_file("num_entries", "memory", commas_before++, commas_after--, all_writer);
+//                bit_sacrifice_res.print_to_file("num_entries", "memory", commas_before++, commas_after--, all_writer);
+//                geometric_expansion_res.print_to_file("num_entries", "memory", commas_before++, commas_after--, all_writer);
                 // bloom_res.print_to_file("num_entries", "memory", commas_before++, commas_after--, all_writer);
                 // cuckoo_res.print_to_file("num_entries", "memory", commas_before++, commas_after--, all_writer);
 

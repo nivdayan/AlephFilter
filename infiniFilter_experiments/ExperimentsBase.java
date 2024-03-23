@@ -29,7 +29,7 @@ public class ExperimentsBase {
     static int bits_per_entry = 16;
     static int num_entries_power = 12;
     static int num_cycles = 27; // went up to 31
-    static int payload_size = 10000;
+    static int payload_size = 32;
 
     static void parse_arguments(String[] args) {
         if (args != null) {
