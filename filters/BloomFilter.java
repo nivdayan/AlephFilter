@@ -101,6 +101,11 @@ public class BloomFilter extends Filter {
 	}
 
 	@Override
+	protected long[][] _search_for_payloads(long large_hash) {
+		return new long[0][];
+	}
+
+	@Override
 	public long get_num_occupied_slots(boolean include_all_internal_filters) {
 		return current_num_entries;
 	}

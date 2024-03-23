@@ -33,6 +33,8 @@ public abstract class Filter {
 	abstract protected boolean _insert_payload(long large_hash, boolean insert_only_if_no_match, long[] payload);
 	abstract protected boolean _search(long large_hash);
 
+	abstract protected long[][] _search_for_payloads(long large_hash);
+
 	@Override
 	public Object clone() {
 		Filter f = null;
@@ -122,6 +124,10 @@ public abstract class Filter {
 	
 	public boolean search(long input) {
 		return _search(get_hash(input));
+	}
+
+	public long[][] search_for_payloads(long input) {
+		return _search_for_payloads(get_hash(input));
 	}
 
 	public boolean search(String input) {

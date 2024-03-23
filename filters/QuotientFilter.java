@@ -428,7 +428,22 @@ public class QuotientFilter extends Filter implements Cloneable {
 		} while (index < get_logical_num_slots_plus_extensions() && is_continuation(index));
 		return -1; 
 	}
-	
+
+	long[] find_all_matching_fingerprint_in_run(long index, long fingerprint) {
+		List<Long> indexes = new ArrayList<>();
+		assert(!is_continuation(index));
+		do {
+			if (compare(index, fingerprint)) {
+				indexes.add(index);
+			}
+			index++;
+		} while (index < get_logical_num_slots_plus_extensions() && is_continuation(index));
+		long[] array = new long[indexes.size()];
+		for (int i = 0; i < indexes.size(); i++) {
+			array[i] = indexes.get(i); // Auto-unboxing from Long to long
+		}
+		return array;
+	}
 	// delete the last matching fingerprint in the run
 	long decide_which_fingerprint_to_delete(long index, long fingerprint) {
 		long matching_fingerprint_index = -1;
@@ -460,7 +475,21 @@ public class QuotientFilter extends Filter implements Cloneable {
 		long found_index = find_first_fingerprint_in_run(run_start_index, fingerprint);
 		return found_index > -1;
 	}
-	
+	// given a canonical index slot and a fingerprint, find the relevant run and return all valid payloads
+	long[][] search_for_payloads(long fingerprint, long index) {
+
+		boolean does_run_exist = is_occupied(index);
+		if (!does_run_exist) {
+			return new long[0][];
+		}
+		long run_start_index = find_run_start(index);
+		long[] found_indexes = find_all_matching_fingerprint_in_run(run_start_index, fingerprint);
+		long[][] payloads = new long[found_indexes.length][];
+		for (int i=0; i<payloads.length; i++) {
+			payloads[i] = get_payload(found_indexes[i]);
+		}
+		return payloads;
+	}
 	// Given a canonical slot index, find the corresponding run and return all fingerprints in the run.
 	// This method is only used for testing purposes.
 	Set<Long> get_all_fingerprints(long bucket_index) {
@@ -863,8 +892,14 @@ public class QuotientFilter extends Filter implements Cloneable {
 		return search(fingerprint, slot_index);
 	}
 
+	@Override
+	protected long[][] _search_for_payloads(long large_hash) {
+		long slot_index = get_slot_index(large_hash);
+		long fingerprint = gen_fingerprint(large_hash);
+		return search_for_payloads(fingerprint, slot_index);
+	}
 
-	
+
 	public boolean get_bit_at_offset(int offset) {
 		return filter.get(offset);
 	}

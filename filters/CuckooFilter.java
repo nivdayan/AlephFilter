@@ -228,6 +228,11 @@ public class CuckooFilter extends Filter {
 	}
 
 	@Override
+	protected long[][] _search_for_payloads(long large_hash) {
+		return new long[0][];
+	}
+
+	@Override
 	public long get_num_occupied_slots(boolean include_all_internal_filters) {
 		long num_entries = 0;
 		for (long i = 0; i < num_buckets; i++) {
