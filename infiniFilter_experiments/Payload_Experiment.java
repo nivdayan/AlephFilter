@@ -61,7 +61,7 @@ public class Payload_Experiment extends ExperimentsBase {
             System.out.println(payload_size);
             baseline original_qf_res = new baseline();
             {
-                int qf_size = (num_entries_power + num_cycles) / 2;
+                int qf_size = (num_entries_power + num_cycles) / 2 + 0;
                 QuotientFilter orig = new QuotientFilter(qf_size, bits_per_entry, payload_size);
                 orig.set_expand_autonomously(false);
                 long starting_index = 0;
@@ -177,6 +177,7 @@ public class Payload_Experiment extends ExperimentsBase {
 
                 //System.out.println();
                 insertion_writer.close();
+
                 FileWriter reads_writer = new FileWriter(read_latency_file_name);
 
                 commas_before = 1;
@@ -185,6 +186,7 @@ public class Payload_Experiment extends ExperimentsBase {
                 // chained_IF_res.print_to_file("num_entries", "query_time", commas_before++, commas_after--, reads_writer);
                 // bit_sacrifice_res.print_to_file("num_entries", "query_time", commas_before++, commas_after--, reads_writer);
                 // geometric_expansion_res.print_to_file("num_entries", "query_time", commas_before++, commas_after--, reads_writer);
+                reads_writer.close();
 
                 System.out.println("Successfully wrote to the files.");
             } catch (IOException e) {
@@ -202,7 +204,6 @@ public class Payload_Experiment extends ExperimentsBase {
         long[][] payloads = new long[(int) (end_key - initial_key)][(payload_size + Long.SIZE - 1) / Long.SIZE]; // Assuming end_key > initial_key
         for (int i = 0; i < end_key - initial_key; i++) {
             payloads[i] = generateRandomPayload(payload_size); // Specify the payload size as per your requirement
-            System.out.println(Arrays.toString(payloads[i]));
         }
 
         long initial_num_entries = initial_key;
