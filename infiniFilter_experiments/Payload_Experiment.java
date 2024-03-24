@@ -53,147 +53,149 @@ public class Payload_Experiment extends ExperimentsBase {
         int[] payload_sizes = {
                 0,
                 32,
-                512,
+                128,
         };
         for (int ps : payload_sizes) {
-            System.gc();
-            payload_size = ps;
-            System.out.println(payload_size);
-            baseline original_qf_res = new baseline();
-            {
-                int qf_size = (num_entries_power + num_cycles) / 2 + 0;
-                QuotientFilter orig = new QuotientFilter(qf_size, bits_per_entry, payload_size);
-                orig.set_expand_autonomously(false);
-                long starting_index = 0;
-                for (int i = 1; i < num_cycles; i++) {
-                    long end_key = (int) (Math.pow(2, qf_size) * i / num_cycles); //
-                    scalability_experiment(orig, starting_index, end_key, original_qf_res);
-                    starting_index = end_key;
-                    System.out.println("static quotient filter " + i);
+            for (PayloadStrategy strategy : new PayloadStrategy[]{PayloadStrategy.MIRRORING, PayloadStrategy.NEIGHBORING}) {
+                System.gc();
+                payload_size = ps;
+                Constants.setPayloadStrategy(strategy);
+                System.out.println(payload_size);
+                baseline original_qf_res = new baseline();
+                {
+                    int qf_size = (num_entries_power + num_cycles) / 2 + 5;
+                    QuotientFilter orig = new QuotientFilter(qf_size, bits_per_entry, payload_size);
+                    orig.set_expand_autonomously(false);
+                    long starting_index = 0;
+                    for (int i = 1; i < num_cycles; i++) {
+                        long end_key = (int) (Math.pow(2, qf_size) * i / num_cycles); //
+                        scalability_experiment(orig, starting_index, end_key, original_qf_res);
+                        starting_index = end_key;
+                        System.out.println("static quotient filter " + i);
+                    }
+                }
+
+                System.gc();
+                System.out.println("finished quotient");
+
+                baseline chained_IF_res = new baseline();
+                {
+                    BasicInfiniFilter qf = new ChainedInfiniFilter(num_entries_power, bits_per_entry, payload_size);
+                    qf.set_expand_autonomously(true);
+                    long starting_index = 0;
+                    long end_key = qf.get_max_entries_before_expansion() - 1;
+                    for (int i = num_entries_power; i <= num_cycles; i++) {
+                        scalability_experiment(qf, starting_index, end_key, chained_IF_res);
+                        starting_index = end_key;
+                        end_key = qf.get_max_entries_before_expansion() * 2 - 1;
+                        System.out.println("infinifilter " + i);
+                    }
+                }
+                System.out.println("finished infinifilter");
+                System.gc();
+
+                baseline bit_sacrifice_res = new baseline();
+                {
+                    FingerprintSacrifice qf2 = new FingerprintSacrifice(num_entries_power, bits_per_entry, payload_size);
+                    qf2.set_expand_autonomously(true);
+                    long starting_index = 0;
+                    long end_key = qf2.get_max_entries_before_expansion() - 1;
+                    for (int i = num_entries_power; i <= num_cycles && qf2.get_fingerprint_length() > 0; i++) {
+                        scalability_experiment(qf2, starting_index, end_key, bit_sacrifice_res);
+                        starting_index = end_key;
+                        end_key = qf2.get_max_entries_before_expansion() * 2 - 1;
+                        System.out.println("bit sacrifice " + i);
+                    }
+                }
+                System.out.println("finished bit sacrifice");
+
+                System.gc();
+
+                baseline geometric_expansion_res = new baseline();
+                {
+                    Chaining qf3 = new Chaining(num_entries_power, bits_per_entry, payload_size);
+                    qf3.set_expand_autonomously(true);
+                    long starting_index = 0;
+                    long end_key = qf3.get_max_entries_before_expansion() - 1;
+                    for (int i = num_entries_power; i <= num_cycles - 1; i++) {
+                        scalability_experiment(qf3, starting_index, end_key, geometric_expansion_res);
+                        starting_index = end_key + 1;
+                        end_key = (long) (qf3.get_max_entries_before_expansion() * 2 + starting_index - 1);
+                        //System.out.println("thresh  " + qf3.max_entries_before_expansion);
+
+                        //(long)(Math.pow(2, power_of_two_size) * expansion_threshold)
+                        System.out.println("geometric chaining " + i);
+                    }
+                }
+                System.out.println("finished geometric chaining");
+//
+                int commas_before = 1;
+                int commas_after = 5;
+                System.out.println("Insertion Time");
+                original_qf_res.print("num_entries", "insertion_time", commas_before++, commas_after--);
+                chained_IF_res.print("num_entries", "insertion_time", commas_before++, commas_after--);
+                bit_sacrifice_res.print("num_entries", "insertion_time", commas_before++, commas_after--);
+                geometric_expansion_res.print("num_entries", "insertion_time", commas_before++, commas_after--);
+
+                System.out.println();
+
+                commas_before = 1;
+                commas_after = 5;
+                System.out.println("Query Time");
+                original_qf_res.print("num_entries", "query_time", commas_before++, commas_after--);
+                chained_IF_res.print("num_entries", "query_time", commas_before++, commas_after--);
+                bit_sacrifice_res.print("num_entries", "query_time", commas_before++, commas_after--);
+                geometric_expansion_res.print("num_entries", "query_time", commas_before++, commas_after--);
+
+                System.out.println();
+
+                String timeStamp = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(Calendar.getInstance().getTime());
+
+                LocalDate ld = LocalDate.now();
+                String dir_name = "Exp1_" + bits_per_entry + "_bits_per_entry_" + payload_size + "_payload_size_in_bits_" + Constants.getPayloadStrategy() + "_payload_strategy_" + ld.toString();
+                Path path = Paths.get(dir_name);
+
+                try {
+                    Files.createDirectories(path);
+                } catch (IOException e1) {
+                    e1.printStackTrace();
+                }
+
+                String write_latency_file_name = dir_name + "/writes_speed.txt";
+                String read_latency_file_name = dir_name + "/read_speed.txt";
+
+                create_file(write_latency_file_name);
+                create_file(read_latency_file_name);
+
+                try {
+                    FileWriter insertion_writer = new FileWriter(write_latency_file_name);
+
+                    commas_before = 1;
+                    commas_after = 5;
+                    original_qf_res.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, insertion_writer);
+                    chained_IF_res.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, insertion_writer);
+                    bit_sacrifice_res.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, insertion_writer);
+                    geometric_expansion_res.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, insertion_writer);
+
+                    //System.out.println();
+                    insertion_writer.close();
+
+                    FileWriter reads_writer = new FileWriter(read_latency_file_name);
+
+                    commas_before = 1;
+                    commas_after = 5;
+                    original_qf_res.print_to_file("num_entries", "query_time", commas_before++, commas_after--, reads_writer);
+                    chained_IF_res.print_to_file("num_entries", "query_time", commas_before++, commas_after--, reads_writer);
+                    bit_sacrifice_res.print_to_file("num_entries", "query_time", commas_before++, commas_after--, reads_writer);
+                    geometric_expansion_res.print_to_file("num_entries", "query_time", commas_before++, commas_after--, reads_writer);
+                    reads_writer.close();
+
+                    System.out.println("Successfully wrote to the files.");
+                } catch (IOException e) {
+                    System.out.println("An error occurred.");
+                    e.printStackTrace();
                 }
             }
-
-            System.gc();
-            System.out.println("finished quotient");
-
-//            baseline chained_IF_res = new baseline();
-//            {
-//                BasicInfiniFilter qf = new ChainedInfiniFilter(num_entries_power, bits_per_entry, payload_size);
-//                qf.set_expand_autonomously(true);
-//                long starting_index = 0;
-//                long end_key = qf.get_max_entries_before_expansion() - 1;
-//                for (int i = num_entries_power; i <= num_cycles; i++) {
-//                    scalability_experiment(qf, starting_index, end_key, chained_IF_res);
-//                    starting_index = end_key;
-//                    end_key = qf.get_max_entries_before_expansion() * 2 - 1;
-//                    System.out.println("infinifilter " + i);
-//                }
-//            }
-//            System.out.println("finished infinifilter");
-//            System.gc();
-//
-//            baseline bit_sacrifice_res = new baseline();
-//            {
-//                FingerprintSacrifice qf2 = new FingerprintSacrifice(num_entries_power, bits_per_entry, payload_size);
-//                qf2.set_expand_autonomously(true);
-//                long starting_index = 0;
-//                long end_key = qf2.get_max_entries_before_expansion() - 1;
-//                for (int i = num_entries_power; i <= num_cycles && qf2.get_fingerprint_length() > 0; i++) {
-//                    scalability_experiment(qf2, starting_index, end_key, bit_sacrifice_res);
-//                    starting_index = end_key;
-//                    end_key = qf2.get_max_entries_before_expansion() * 2 - 1;
-//                    System.out.println("bit sacrifice " + i);
-//                }
-//            }
-//            System.out.println("finished bit sacrifice");
-//
-//            System.gc();
-//
-//            baseline geometric_expansion_res = new baseline();
-//            {
-//                Chaining qf3 = new Chaining(num_entries_power, bits_per_entry, payload_size);
-//                qf3.set_expand_autonomously(true);
-//                long starting_index = 0;
-//                long end_key = qf3.get_max_entries_before_expansion() - 1;
-//                for (int i = num_entries_power; i <= num_cycles - 1; i++) {
-//                    scalability_experiment(qf3, starting_index, end_key, geometric_expansion_res);
-//                    starting_index = end_key + 1;
-//                    end_key = (long) (qf3.get_max_entries_before_expansion() * 2 + starting_index - 1);
-//                    //System.out.println("thresh  " + qf3.max_entries_before_expansion);
-//
-//                    //(long)(Math.pow(2, power_of_two_size) * expansion_threshold)
-//                    System.out.println("geometric chaining " + i);
-//                }
-//            }
-//            System.out.println("finished geometric chaining");
-//
-            int commas_before = 1;
-            int commas_after = 5;
-            System.out.println("Insertion Time");
-            original_qf_res.print("num_entries", "insertion_time", commas_before++, commas_after--);
-            // chained_IF_res.print("num_entries", "insertion_time", commas_before++, commas_after--);
-            // bit_sacrifice_res.print("num_entries", "insertion_time", commas_before++, commas_after--);
-            // geometric_expansion_res.print("num_entries", "insertion_time", commas_before++, commas_after--);
-
-            System.out.println();
-
-            commas_before = 1;
-            commas_after = 5;
-            System.out.println("Query Time");
-            original_qf_res.print("num_entries", "query_time", commas_before++, commas_after--);
-            // chained_IF_res.print("num_entries", "query_time", commas_before++, commas_after--);
-            // bit_sacrifice_res.print("num_entries", "query_time", commas_before++, commas_after--);
-            // geometric_expansion_res.print("num_entries", "query_time", commas_before++, commas_after--);
-
-            System.out.println();
-
-            String timeStamp = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(Calendar.getInstance().getTime());
-
-            LocalDate ld = LocalDate.now();
-            String dir_name = "Exp1_" + bits_per_entry + "_bytes_" + timeStamp.toString();
-            Path path = Paths.get(dir_name);
-
-            try {
-                Files.createDirectories(path);
-            } catch (IOException e1) {
-                e1.printStackTrace();
-            }
-
-            String write_latency_file_name = dir_name + "/writes_speed.txt";
-            String read_latency_file_name = dir_name + "/read_speed.txt";
-
-            create_file(write_latency_file_name);
-            create_file(read_latency_file_name);
-
-            try {
-                FileWriter insertion_writer = new FileWriter(write_latency_file_name);
-
-                commas_before = 1;
-                commas_after = 5;
-                original_qf_res.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, insertion_writer);
-                // chained_IF_res.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, insertion_writer);
-                // bit_sacrifice_res.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, insertion_writer);
-                // geometric_expansion_res.print_to_file("num_entries", "insertion_time", commas_before++, commas_after--, insertion_writer);
-
-                //System.out.println();
-                insertion_writer.close();
-
-                FileWriter reads_writer = new FileWriter(read_latency_file_name);
-
-                commas_before = 1;
-                commas_after = 5;
-                original_qf_res.print_to_file("num_entries", "query_time", commas_before++, commas_after--, reads_writer);
-                // chained_IF_res.print_to_file("num_entries", "query_time", commas_before++, commas_after--, reads_writer);
-                // bit_sacrifice_res.print_to_file("num_entries", "query_time", commas_before++, commas_after--, reads_writer);
-                // geometric_expansion_res.print_to_file("num_entries", "query_time", commas_before++, commas_after--, reads_writer);
-                reads_writer.close();
-
-                System.out.println("Successfully wrote to the files.");
-            } catch (IOException e) {
-                System.out.println("An error occurred.");
-                e.printStackTrace();
-            }
-
         }
     }
 
