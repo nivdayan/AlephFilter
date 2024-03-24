@@ -25,6 +25,8 @@ import infiniFilter_experiments.ExperimentsBase;
 public class Client {
 
 	static void run_tests() {
+		PayloadStrategy old = Constants.getPayloadStrategy();
+		Constants.setPayloadStrategy(PayloadStrategy.NEIGHBORING);
 		Tests.test_integ_payload(); // example from wikipedia
 		Tests.test1(); // example from wikipedia
 		Tests.test2(); // example from quotient filter paper
@@ -52,7 +54,34 @@ public class Client {
 		Tests.test25(); // testing false positive rate for cuckoo filter
 		Tests.test26(); // testing false positive rate for bloom filter
 		Tests.test27(); // exceeding the bound of the quotient filter
-		
+
+		Constants.setPayloadStrategy(PayloadStrategy.MIRRORING);
+		TestsMirroring.test1(); // example from wikipedia
+		TestsMirroring.test2(); // example from quotient filter paper
+		TestsMirroring.test3(); // ensuring no false negatives
+		TestsMirroring.test4(); // overflow test
+		TestsMirroring.test5(); // deletion test
+		TestsMirroring.test6(); // iteration test 1
+		TestsMirroring.test7(); // iteration test 2
+		TestsMirroring.test8(); // expansion test for FingerprintShrinkingQF
+		TestsMirroring.test9(); // expansion test for MultiplyingQF
+		TestsMirroring.test10(); // testing InfiniFilter
+		TestsMirroring.test12(); // testing InfiniFilter - chained
+		TestsMirroring.test13(); // testing InfiniFilter - rejuvenation
+		TestsMirroring.test14(); // InfiniFilter deleting largest matching fingerprint
+		TestsMirroring.test15(); // testing deletes
+		TestsMirroring.test16(); // testing deletes
+		TestsMirroring.test17(); // testing deletes
+		TestsMirroring.test18(); // testing deletes & rejuv operations
+		TestsMirroring.test19(); // testing xxhash
+		TestsMirroring.test21(1000000); // testing insert,search an delete of types int,long,String,byte[]
+		TestsMirroring.test22(); // testing no false negatives for bloom filter
+		TestsMirroring.test23(); // no false negatives for cuckoo filter
+		TestsMirroring.test24(); // testing false positive rate for quotient filter
+		TestsMirroring.test25(); // testing false positive rate for cuckoo filter
+		TestsMirroring.test26(); // testing false positive rate for bloom filter
+		TestsMirroring.test27(); // exceeding the bound of the quotient filter
+		Constants.setPayloadStrategy(old);
 		System.out.println("all tests passed");
 	}
 	
