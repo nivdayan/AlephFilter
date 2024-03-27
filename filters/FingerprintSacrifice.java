@@ -18,8 +18,8 @@ package filters;
 
 public class FingerprintSacrifice extends QuotientFilter {
 
-	public FingerprintSacrifice(int power_of_two, int bits_per_entry) {
-		super(power_of_two, bits_per_entry);
+	public FingerprintSacrifice(int power_of_two, int bits_per_entry, int payloadSize) {
+		super(power_of_two, bits_per_entry, payloadSize);
 		// TODO Auto-generated constructor stub
 		max_entries_before_full = (int)(Math.pow(2, power_of_two_size) * fullness_threshold);
 	}
@@ -31,33 +31,34 @@ public class FingerprintSacrifice extends QuotientFilter {
 			return false;
 		}
 		
-		QuotientFilter new_qf = new QuotientFilter(power_of_two_size + 1, bitPerEntry - 1);
+		QuotientFilter new_qf = new QuotientFilter(power_of_two_size + 1, bitPerEntry - 1, payloadSize);
 		Iterator it = new Iterator(this);
 		//long start = System.nanoTime();
 		
 		while (it.next()) {
 			long bucket = it.bucket_index;
 			long fingerprint = it.fingerprint;
+			long[] payload = it.payload;
 			long pivot_bit = (1 & fingerprint);
 			long bucket_mask = pivot_bit << power_of_two_size;
 			long updated_bucket = bucket | bucket_mask;
 			long updated_fingerprint = fingerprint >> 1;
 			
-			/*System.out.println(bucket); 
-			System.out.print("bucket1      : ");
-			print_int_in_binary( bucket, power_of_two_size);
-			System.out.print("fingerprint1 : ");
-			print_int_in_binary((int) fingerprint, fingerprintLength);
-			System.out.print("pivot        : ");
-			print_int_in_binary((int) pivot_bit, 1);
-			System.out.print("bucket2      : ");
-			print_int_in_binary((int) updated_bucket, power_of_two_size + 1);
-			System.out.print("fingerprint2 : ");
-			print_int_in_binary((int) updated_fingerprint, fingerprintLength - 1);
-			System.out.println();
-			System.out.println();*/
+			// System.out.println(bucket);
+			// System.out.print("bucket1      : ");
+			// print_int_in_binary((int) bucket, power_of_two_size);
+			// System.out.print("fingerprint1 : ");
+			// print_int_in_binary((int) fingerprint, fingerprintLength);
+			// System.out.print("pivot        : ");
+			// print_int_in_binary((int) pivot_bit, 1);
+			// System.out.print("bucket2      : ");
+			// print_int_in_binary((int) updated_bucket, power_of_two_size + 1);
+			// System.out.print("fingerprint2 : ");
+			// print_int_in_binary((int) updated_fingerprint, fingerprintLength - 1);
+			// System.out.println();
+			// System.out.println();
 			
-			new_qf.insert(updated_fingerprint, (int)updated_bucket, false);
+			new_qf.insert(updated_fingerprint, (int)updated_bucket, false, payload);
 		}
 		
 		//long end = System.nanoTime();

@@ -17,6 +17,7 @@ limitations under the License.
 package filters;
 
 import java.util.ArrayDeque;
+import java.util.Arrays;
 import java.util.Queue;
 
 public class Iterator  {
@@ -25,47 +26,52 @@ public class Iterator  {
 	long index;
 	long bucket_index;
 	long fingerprint;
+	long[] payload;
 	Queue<Long> s;
 
 	Iterator(QuotientFilter new_qf) {
 		qf = new_qf;
-		s = new ArrayDeque<Long>(); 
+		s = new ArrayDeque<Long>();
 		//s = new ArrayDeque<Integer>();
 		index = 0;
 		bucket_index = -1;
 		fingerprint = -1;
+		payload = null;
 	}
-	
+
 	void clear() {
 		s.clear();
 		index = 0;
 		bucket_index = -1;
 		fingerprint = -1;
+		payload = null;
 	}
 
 	boolean next() {
-		
 		if (index == qf.get_logical_num_slots_plus_extensions()) {
 			return false;
-		}	
-		
-		long slot = qf.get_slot(index);
+		}
+
+		long[] slots = qf.get_slot(index);
+		long slot = slots[slots.length - 1];
+		payload = Arrays.copyOfRange(slots, 0, slots.length - 1);
 		boolean occupied = (slot & 1) != 0;
 		boolean continuation = (slot & 2) != 0;
 		boolean shifted = (slot & 4) != 0;
-		
-		
+
+
 		while (!occupied && !continuation && !shifted && index < qf.get_logical_num_slots_plus_extensions()) {
 			index++;
 			if (index == qf.get_logical_num_slots_plus_extensions()) {
 				return false;
-			}	
-			slot = qf.get_slot(index);
+			}
+			slots = qf.get_slot(index);
+			slot = slots[slots.length - 1];
+			payload = Arrays.copyOfRange(slots, 0, slots.length - 1);
 			occupied = (slot & 1) != 0;
 			continuation = (slot & 2) != 0;
 			shifted = (slot & 4) != 0;
-		} 
-
+		}
 		if (occupied && !continuation && !shifted) {
 			s.clear();
 			s.add(index);
@@ -83,17 +89,15 @@ public class Iterator  {
 		}
 		else if (occupied && !continuation && shifted) {
 			s.add(index);
-			s.remove(); 
+			s.remove();
 			bucket_index = s.peek();
 		}
 		fingerprint = slot >> 3;
 		index++;
 		return true;
 	}
-	
+
 	void print() {
 		System.out.println("original slot: " + index + "  " + bucket_index);
 	}
-
-
 }

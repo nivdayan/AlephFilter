@@ -17,6 +17,7 @@ limitations under the License.
 package filters;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 import filters.FingerprintGrowthStrategy.FalsePositiveRateExpansion;
 
@@ -63,8 +64,8 @@ public class ChainedInfiniFilter extends BasicInfiniFilter implements Cloneable 
 	//int count_until_expanding_former = 0;
 	//int former_phase = 0;
 	
-	public ChainedInfiniFilter(int power_of_two, int bits_per_entry) {
-		super(power_of_two, bits_per_entry);
+	public ChainedInfiniFilter(int power_of_two, int bits_per_entry, int payload_size) {
+		super(power_of_two, bits_per_entry, payload_size);
 		chain = new ArrayList<BasicInfiniFilter>();
 		//num_expansions_left = Integer.MAX_VALUE;
 	}
@@ -141,7 +142,8 @@ public class ChainedInfiniFilter extends BasicInfiniFilter implements Cloneable 
 		long bucket1 = bucket_index;
 		long fingerprint = bucket_index >> secondary_IF.power_of_two_size;
 		long slot = bucket1 & slot_mask;
-		
+		long[] payload = current.get_payload(slot);
+
 		// In case the fingerprint is too long, we must chop it. This is here just for safety though, 
 		// as the slot width of the secondary IF should generally be large enough
 		long adjusted_fingerprint = fingerprint & fingerprint_mask; 
@@ -161,7 +163,7 @@ public class ChainedInfiniFilter extends BasicInfiniFilter implements Cloneable 
 
 		num_physical_entries--;
 		//secondary_IF.num_existing_entries++;
-		boolean success = secondary_IF.insert(adjusted_fingerprint, slot, false);
+		boolean success = secondary_IF.insert(adjusted_fingerprint, slot, false, payload);
 		
 
 		if (exceeding_secondary_threshold()) {
@@ -185,7 +187,7 @@ public class ChainedInfiniFilter extends BasicInfiniFilter implements Cloneable 
 			 adjusted_fingerprint = fingerprint & fingerprint_mask; 
 			adjusted_fingerprint = adjusted_fingerprint | unary_mask;
 			
-			success = secondary_IF.insert(adjusted_fingerprint, slot, false);
+			success = secondary_IF.insert(adjusted_fingerprint, slot, false, payload);
 			
 			//pretty_print();
 			print_age_histogram();
@@ -224,7 +226,7 @@ public class ChainedInfiniFilter extends BasicInfiniFilter implements Cloneable 
 	
 	void create_secondary(int power, int FP_size) {
 		power = Math.max(power, 3);
-		secondary_IF = new BasicInfiniFilter(power, FP_size + 3);
+		secondary_IF = new BasicInfiniFilter(power, FP_size + 3, payloadSize);
 		secondary_IF.hash_type = this.hash_type;
 		secondary_IF.fprStyle = FingerprintGrowthStrategy.FalsePositiveRateExpansion.UNIFORM;
 		secondary_IF.original_fingerprint_size = original_fingerprint_size;
@@ -240,7 +242,7 @@ public class ChainedInfiniFilter extends BasicInfiniFilter implements Cloneable 
 				new_power_of_two -= 2;
 			}
 			
-			secondary_IF = new BasicInfiniFilter(new_power_of_two, secondary_IF.fingerprintLength + 3);
+			secondary_IF = new BasicInfiniFilter(new_power_of_two, secondary_IF.fingerprintLength + 3, payloadSize);
 			secondary_IF.hash_type = this.hash_type;
 			secondary_IF.original_fingerprint_size = original_fingerprint_size;
 			secondary_IF.fprStyle = FingerprintGrowthStrategy.FalsePositiveRateExpansion.UNIFORM;
@@ -320,9 +322,10 @@ public class ChainedInfiniFilter extends BasicInfiniFilter implements Cloneable 
 			System.out.println("Warning: it seems the key to be rejuvenrated does not exist. We must only ever call rejuvenrate on keys that exist.");
 			return false;
 		}
-		long removed_fp = secondary_IF.delete(key);
-		if (removed_fp > -1) {
-			success = insert(key, false);
+		long[] removed_fp = secondary_IF.delete(key);
+		if (removed_fp[removed_fp.length - 1] > -1) {
+			// todo
+			success = insert(key, false, Arrays.copyOfRange(removed_fp, 0, removed_fp.length - 1));
 			if (!success) {
 				System.out.println("failed at rejuvenation");
 				System.exit(1);
@@ -331,8 +334,8 @@ public class ChainedInfiniFilter extends BasicInfiniFilter implements Cloneable 
 		}
 		for (int i = chain.size() - 1; i >= 0; i--) {						
 			removed_fp = chain.get(i).delete(key);
-			if (removed_fp > -1) {
-				success = insert(key, false);
+			if (removed_fp[removed_fp.length - 1] > -1) {
+				success = insert(key, false, Arrays.copyOfRange(removed_fp, 0, removed_fp.length - 1));
 				if (!success) {
 					System.out.println("failed at rejuvenation");
 					System.exit(1);
@@ -344,13 +347,13 @@ public class ChainedInfiniFilter extends BasicInfiniFilter implements Cloneable 
 	}
 	
 	
-	public long delete(long input) {
+	public long[] delete(long input) {
 		long large_hash = get_hash(input);
 		long slot_index = get_slot_index(large_hash);
 		long fp_long = gen_fingerprint(large_hash);
 		//System.out.println("deleting  " + input + "\t b " + slot_index + " \t" + get_fingerprint_str(fp_long, fingerprintLength));
-		long removed_fp = delete(fp_long, slot_index);
-		if (removed_fp > -1) {
+		long[] removed_fp = delete(fp_long, slot_index);
+		if (removed_fp[removed_fp.length - 1] > -1) {
 			num_physical_entries--;
 			return removed_fp;
 		}
@@ -358,7 +361,7 @@ public class ChainedInfiniFilter extends BasicInfiniFilter implements Cloneable 
 		slot_index = secondary_IF.get_slot_index(large_hash);
 		fp_long = secondary_IF.gen_fingerprint(large_hash);
 		removed_fp = secondary_IF.delete(fp_long, slot_index);
-		if (removed_fp > -1) {
+		if (removed_fp[removed_fp.length - 1] > -1) {
 			secondary_IF.num_physical_entries--;
 			return removed_fp;
 		}
@@ -367,7 +370,7 @@ public class ChainedInfiniFilter extends BasicInfiniFilter implements Cloneable 
 			slot_index = chain.get(i).get_slot_index(large_hash);
 			fp_long = chain.get(i).gen_fingerprint(large_hash);
 			removed_fp = chain.get(i).delete(fp_long, slot_index);
-			if (removed_fp > -1) {
+			if (removed_fp[removed_fp.length - 1] > -1) {
 				chain.get(i).num_physical_entries--;
 				return removed_fp;
 			}

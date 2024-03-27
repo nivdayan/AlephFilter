@@ -16,21 +16,21 @@ limitations under the License.
 
 package infiniFilter_experiments;
 
+import filters.ChainedInfiniFilter;
+import filters.DuplicatingChainedInfiniFilter;
+import filters.Filter;
+import filters.FingerprintGrowthStrategy.FalsePositiveRateExpansion;
+import filters.FingerprintSacrifice;
+
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
-import java.time.LocalDate;
 import java.util.Calendar;
 import java.util.LinkedList;
 import java.util.Queue;
-import filters.ChainedInfiniFilter;
-import filters.DuplicatingChainedInfiniFilter;
-import filters.Filter;
-import filters.FingerprintGrowthStrategy.FalsePositiveRateExpansion;
-import filters.FingerprintSacrifice;
 
 public class Experiment7 extends ExperimentsBase {
 	
@@ -74,13 +74,13 @@ public class Experiment7 extends ExperimentsBase {
 		boolean do_infinifilter = true;
 		
 		if (do_warmup) {
-			Filter qf = new FingerprintSacrifice(num_entries_power, bits_per_entry);
+			Filter qf = new FingerprintSacrifice(num_entries_power, bits_per_entry, payload_size);
 			warmup(qf, num_entries_power + bits_per_entry - 5);
 		}
 		
 		baseline fingerprint_sacrifice_res = new baseline();
 		{
-			FingerprintSacrifice qf = new FingerprintSacrifice(num_entries_power, bits_per_entry);
+			FingerprintSacrifice qf = new FingerprintSacrifice(num_entries_power, bits_per_entry, payload_size);
 			qf.set_expand_autonomously(true); 
 			long starting_index = 0;
 			Queue<Long> end_keys = new LinkedList<Long>();
@@ -110,7 +110,7 @@ public class Experiment7 extends ExperimentsBase {
 		System.gc();
 		
 		if (do_warmup) {
-			DuplicatingChainedInfiniFilter qf = new DuplicatingChainedInfiniFilter(num_entries_power, bits_per_entry, true, -1);
+			DuplicatingChainedInfiniFilter qf = new DuplicatingChainedInfiniFilter(num_entries_power, bits_per_entry, true, -1, payload_size);
 			qf.set_expand_autonomously(true); 
 			qf.set_fpr_style(fpr_style);			
 			warmup(qf, num_cycles - 4);
@@ -118,7 +118,7 @@ public class Experiment7 extends ExperimentsBase {
 		
 		baseline aleph_regular = new baseline();
 		{
-			DuplicatingChainedInfiniFilter qf = new DuplicatingChainedInfiniFilter(num_entries_power, bits_per_entry, true, -1);
+			DuplicatingChainedInfiniFilter qf = new DuplicatingChainedInfiniFilter(num_entries_power, bits_per_entry, true, -1, payload_size);
 			qf.set_expand_autonomously(true); 
 			qf.set_fpr_style(fpr_style);
 			long starting_index = 0;
@@ -155,7 +155,7 @@ public class Experiment7 extends ExperimentsBase {
 		System.gc();
 		
 		if (do_warmup) {
-			ChainedInfiniFilter qf = new ChainedInfiniFilter(num_entries_power, bits_per_entry);
+			ChainedInfiniFilter qf = new ChainedInfiniFilter(num_entries_power, bits_per_entry, payload_size);
 			qf.set_expand_autonomously(true); 
 			qf.set_fpr_style(fpr_style);			
 			warmup(qf, num_cycles - 4);
@@ -163,7 +163,7 @@ public class Experiment7 extends ExperimentsBase {
 
 		baseline infinifilter = new baseline();
 		{
-			ChainedInfiniFilter qf = new ChainedInfiniFilter(num_entries_power, bits_per_entry);
+			ChainedInfiniFilter qf = new ChainedInfiniFilter(num_entries_power, bits_per_entry, payload_size);
 			qf.set_expand_autonomously(true); 
 			qf.set_fpr_style(fpr_style);
 			long starting_index = 0;
@@ -406,7 +406,7 @@ public class Experiment7 extends ExperimentsBase {
 		boolean successful_insert = false;
 		long phys_entries = 0, max_entries = 0;
 		do {
-			successful_insert = qf.insert(insertion_index, false);
+			successful_insert = qf.insert(insertion_index, false, new long[]{0});
 			insertion_index++;
 			//System.out.println(qf.get_num_physical_entries() + "  " + qf.get_max_entries_before_expansion());
 			 phys_entries = qf.get_num_physical_entries();
@@ -465,21 +465,20 @@ public class Experiment7 extends ExperimentsBase {
 		long start_deletes = System.nanoTime();
 		
 		//System.out.println("inserting: " + num_entries_to_insert + " to capacity " + Math.pow(2, qf.power_of_two_size));
-
-		long slot_of_deleted_key = -1;
+		long[] slot_of_deleted_key = new long[]{-1};
 		int num_deletes = 0;
 		do {
 			slot_of_deleted_key = qf.delete(delete_index);
 			//boolean found = qf.search(delete_index);
 			delete_index++;
 			num_deletes++;
-		} while (delete_index < end_key && slot_of_deleted_key > -1);
-		
-		if (slot_of_deleted_key == -1) {
+		} while (delete_index < end_key && slot_of_deleted_key[slot_of_deleted_key.length - 1] > -1);
+
+		if (slot_of_deleted_key[slot_of_deleted_key.length - 1] == -1) {
 			System.out.println("an delete failed");
 			System.exit(1);
 		}
-		
+
 		long end_deletes = System.nanoTime();
 		
 		double avg_deletes = (end_deletes - start_deletes) / (double)(num_deletes);

@@ -16,6 +16,9 @@ limitations under the License.
 
 package infiniFilter_experiments;
 
+import filters.*;
+import filters.FingerprintGrowthStrategy.FalsePositiveRateExpansion;
+
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -25,16 +28,6 @@ import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Calendar;
-
-import filters.FingerprintSacrifice;
-import filters.BloomFilter;
-import filters.ChainedInfiniFilter;
-import filters.CuckooFilter;
-import filters.Filter;
-import filters.FingerprintGrowthStrategy.FalsePositiveRateExpansion;
-import filters.BasicInfiniFilter;
-import filters.Chaining;
-import filters.QuotientFilter;
 
 public class Experiment4 extends ExperimentsBase {
 	
@@ -58,11 +51,11 @@ public class Experiment4 extends ExperimentsBase {
 		
 		System.gc();
 		{
-			QuotientFilter qf = new QuotientFilter(num_entries_power, bits_per_entry);
+			QuotientFilter qf = new QuotientFilter(num_entries_power, bits_per_entry, payload_size);
 			scalability_experiment(qf, 0, qf.get_max_entries_before_expansion() - 1, new baseline());
 		}
 		{
-			QuotientFilter qf = new QuotientFilter(num_entries_power, bits_per_entry);
+			QuotientFilter qf = new QuotientFilter(num_entries_power, bits_per_entry, payload_size);
 			scalability_experiment(qf, 0, qf.get_max_entries_before_expansion() - 1, new baseline());
 		}
 		
@@ -79,7 +72,7 @@ public class Experiment4 extends ExperimentsBase {
 		//num_cycles = 31;
 		baseline chained_IF_res = new baseline();
 		{
-			BasicInfiniFilter qf = new ChainedInfiniFilter(num_entries_power, bits_per_entry);
+			BasicInfiniFilter qf = new ChainedInfiniFilter(num_entries_power, bits_per_entry, payload_size);
 			qf.set_expand_autonomously(true); 
 			long starting_index = 0;
 			long end_key = qf.get_max_entries_before_expansion() - 1;
@@ -100,7 +93,7 @@ public class Experiment4 extends ExperimentsBase {
 		baseline original_qf_res = new baseline();
 		{
 			int power = (int) (  num_entries_power  + (num_cycles - num_entries_power) * (4.0 / 5.0)   );
-			QuotientFilter orig = new QuotientFilter(power, bits_per_entry);
+			QuotientFilter orig = new QuotientFilter(power, bits_per_entry, payload_size);
 			//System.out.println("num entries " + orig.get_logical_num_slots() );
 			orig.set_expand_autonomously(false); 
 			long starting_index = 0;
@@ -118,7 +111,7 @@ public class Experiment4 extends ExperimentsBase {
 		//num_cycles = 31;
 		baseline chained_IF_growing_res = new baseline();
 		{
-			BasicInfiniFilter qf = new ChainedInfiniFilter(num_entries_power, bits_per_entry);
+			BasicInfiniFilter qf = new ChainedInfiniFilter(num_entries_power, bits_per_entry, payload_size);
 			qf.set_fpr_style(FalsePositiveRateExpansion.POLYNOMIAL);
 			qf.set_expand_autonomously(true); 
 			long starting_index = 0;
@@ -182,7 +175,7 @@ public class Experiment4 extends ExperimentsBase {
 		
 		baseline bit_sacrifice_res = new baseline();
 		{
-			FingerprintSacrifice qf2 = new FingerprintSacrifice(num_entries_power, bits_per_entry);
+			FingerprintSacrifice qf2 = new FingerprintSacrifice(num_entries_power, bits_per_entry, payload_size);
 			qf2.set_expand_autonomously(true); 
 			long starting_index = 0;
 			for (int i = 0; i < end_points.size(); i++ ) {
@@ -200,7 +193,7 @@ public class Experiment4 extends ExperimentsBase {
 
 		baseline geometric_expansion_res = new baseline();
 		{
-			Chaining qf3 = new Chaining(num_entries_power, bits_per_entry);
+			Chaining qf3 = new Chaining(num_entries_power, bits_per_entry, payload_size);
 			qf3.set_expand_autonomously(true);
 			long starting_index = 0;
 			for (int i = 0; i < end_points.size(); i++ ) {
@@ -265,7 +258,7 @@ public class Experiment4 extends ExperimentsBase {
 
 		String timeStamp = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(Calendar.getInstance().getTime());
 
-		LocalDate ld = java.time.LocalDate.now();
+		LocalDate ld = LocalDate.now();
 		String dir_name = "Exp4_" + bits_per_entry + "_bytes_" +  timeStamp.toString();
 	    Path path = Paths.get(dir_name);
 
@@ -423,7 +416,7 @@ public class Experiment4 extends ExperimentsBase {
 
 		boolean successful_insert = false;
 		do {
-			successful_insert = qf.insert(insertion_index, false);
+			successful_insert = qf.insert(insertion_index, false, new long[]{0});
 			insertion_index++;
 		} while (insertion_index < end_key && successful_insert);
 		

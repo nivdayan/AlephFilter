@@ -28,8 +28,12 @@ public abstract class Filter {
 	abstract boolean rejuvenate(long key);
 	public boolean expand() { return false; }
 	protected abstract long _delete(long large_hash);
+	protected abstract long[] _delete_payload(long large_hash);
 	abstract protected boolean _insert(long large_hash, boolean insert_only_if_no_match);
+	abstract protected boolean _insert_payload(long large_hash, boolean insert_only_if_no_match, long[] payload);
 	abstract protected boolean _search(long large_hash);
+
+	abstract protected long[][] _search_for_payloads(long large_hash);
 
 	@Override
 	public Object clone() {
@@ -65,53 +69,53 @@ public abstract class Filter {
 		return num_logical_entries;
 	}
 
-	public long delete(long input) {
-		long slot = _delete(get_hash(input));
-		if (slot >= 0) {
+	public long[] delete(long input) {
+		long[] slots = _delete_payload(get_hash(input));
+		if (slots[slots.length - 1] >= 0) {
 			num_logical_entries--;
 		}
-		return slot;
+		return slots;
 	}
 
-	public long delete(String input) {
+	public long[] delete(String input) {
 		ByteBuffer input_buffer = ByteBuffer.wrap(input.getBytes(StandardCharsets.UTF_8));
-		long slot =  _delete(HashFunctions.xxhash(input_buffer));
-		if (slot >= 0) {
+		long[] slots =  _delete_payload(HashFunctions.xxhash(input_buffer));
+		if (slots[slots.length - 1] >= 0) {
 			num_logical_entries--;
 		}
-		return slot;
+		return slots;
 	}
 
-	public long delete(byte[] input) {
+	public long[] delete(byte[] input) {
 		ByteBuffer input_buffer = ByteBuffer.wrap(input);
-		long slot =  _delete(HashFunctions.xxhash(input_buffer));
-		if (slot >= 0) {
+		long[] slots =  _delete_payload(HashFunctions.xxhash(input_buffer));
+		if (slots[slots.length - 1] >= 0) {
 			num_logical_entries--;
 		}
-		return slot;
+		return slots;
 	}
 	
-	public boolean insert(long input, boolean insert_only_if_no_match) {		
+	public boolean insert(long input, boolean insert_only_if_no_match, long[] payload) {
 		long hash = get_hash(input);
-		boolean success = _insert(hash, insert_only_if_no_match);
+		boolean success = _insert_payload(hash, insert_only_if_no_match, payload);
 		if (success) {
 			num_logical_entries++;
 		}
 		return success;
 	}
 
-	public boolean insert(String input, boolean insert_only_if_no_match) {
+	public boolean insert(String input, boolean insert_only_if_no_match, long[] payload) {
 		ByteBuffer input_buffer = ByteBuffer.wrap(input.getBytes(StandardCharsets.UTF_8));
-		boolean success =  _insert(HashFunctions.xxhash(input_buffer), insert_only_if_no_match);
+		boolean success =  _insert_payload(HashFunctions.xxhash(input_buffer), insert_only_if_no_match, payload);
 		if (success) {
 			num_logical_entries++;
 		}
 		return success;
 	}
 
-	public boolean insert(byte[] input, boolean insert_only_if_no_match) {
+	public boolean insert(byte[] input, boolean insert_only_if_no_match, long[] payload) {
 		ByteBuffer input_buffer = ByteBuffer.wrap(input);
-		boolean success =  _insert(HashFunctions.xxhash(input_buffer), insert_only_if_no_match);
+		boolean success =  _insert_payload(HashFunctions.xxhash(input_buffer), insert_only_if_no_match, payload);
 		if (success) {
 			num_logical_entries++;
 		}
@@ -120,6 +124,10 @@ public abstract class Filter {
 	
 	public boolean search(long input) {
 		return _search(get_hash(input));
+	}
+
+	public long[][] search_for_payloads(long input) {
+		return _search_for_payloads(get_hash(input));
 	}
 
 	public boolean search(String input) {

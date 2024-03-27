@@ -25,7 +25,7 @@ public abstract class Bitmap {
 	public abstract long getFromTo(long from, long to);
 	
 	public static boolean get_fingerprint_bit(long index, long fingerprint) {
-		long mask = 1 << index;
+		long mask = 1L << index;
 		long and = fingerprint & mask;
 		return and != 0;
 	}

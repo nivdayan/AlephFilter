@@ -16,6 +16,10 @@ limitations under the License.
 
 package infiniFilter_experiments;
 
+import filters.BasicInfiniFilter;
+import filters.ChainedInfiniFilter;
+import filters.QuotientFilter;
+
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -25,10 +29,6 @@ import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.util.Calendar;
 import java.util.Random;
-
-import filters.ChainedInfiniFilter;
-import filters.BasicInfiniFilter;
-import filters.QuotientFilter;
 
 public class Experiment2 extends ExperimentsBase {
 
@@ -47,7 +47,7 @@ public class Experiment2 extends ExperimentsBase {
 		//System.out.println("inserting: " + num_entries_to_insert + " to capacity " + Math.pow(2, qf.power_of_two_size));
 
 		do {
-			qf.insert(insertion_index, false);
+			qf.insert(insertion_index, false, new long[]{0});
 			insertion_index++;
 			if (gen.nextDouble() < fraction_queries) {
 				for (int i = 0; i < fraction_queries; i++) {
@@ -102,15 +102,15 @@ public class Experiment2 extends ExperimentsBase {
 		parse_arguments(args);
 		
 		System.gc();
-		{ QuotientFilter qf = new QuotientFilter(num_entries_power, bits_per_entry);
+		{ QuotientFilter qf = new QuotientFilter(num_entries_power, bits_per_entry, payload_size);
 			Experiment1.scalability_experiment(qf, 0, qf.get_max_entries_before_expansion() - 1, new baseline());}
-		{ QuotientFilter qf = new QuotientFilter(num_entries_power, bits_per_entry);
+		{ QuotientFilter qf = new QuotientFilter(num_entries_power, bits_per_entry, payload_size);
 		Experiment1.scalability_experiment(qf, 0, qf.get_max_entries_before_expansion() - 1, new baseline());}
 
 		System.gc();
 		baseline chained_IF_1 = new baseline();
 		{
-			BasicInfiniFilter qf = new ChainedInfiniFilter(num_entries_power, bits_per_entry);
+			BasicInfiniFilter qf = new ChainedInfiniFilter(num_entries_power, bits_per_entry, payload_size);
 			qf.set_expand_autonomously(true);
 			for (int i = num_entries_power; i <= num_cycles; i++ ) {
 				rejuvenation_experiment(qf, i, chained_IF_1, 0);
@@ -121,7 +121,7 @@ public class Experiment2 extends ExperimentsBase {
 		System.gc();
 		baseline chained_IF_2 = new baseline();
 		{
-			BasicInfiniFilter qf = new ChainedInfiniFilter(num_entries_power, bits_per_entry);
+			BasicInfiniFilter qf = new ChainedInfiniFilter(num_entries_power, bits_per_entry, payload_size);
 			qf.set_expand_autonomously(true);
 			for (int i = num_entries_power; i <= num_cycles; i++ ) {
 				rejuvenation_experiment(qf, i, chained_IF_2, 0.2);
@@ -132,7 +132,7 @@ public class Experiment2 extends ExperimentsBase {
 		System.gc();
 		baseline chained_IF_3 = new baseline();
 		{
-			BasicInfiniFilter qf = new ChainedInfiniFilter(num_entries_power, bits_per_entry);
+			BasicInfiniFilter qf = new ChainedInfiniFilter(num_entries_power, bits_per_entry, payload_size);
 			qf.set_expand_autonomously(true);
 			for (int i = num_entries_power; i <= num_cycles; i++ ) {
 				rejuvenation_experiment(qf, i, chained_IF_3, 1);
@@ -144,7 +144,7 @@ public class Experiment2 extends ExperimentsBase {
 		
 		baseline chained_IF_4 = new baseline();
 		{
-			BasicInfiniFilter qf = new ChainedInfiniFilter(num_entries_power, bits_per_entry);
+			BasicInfiniFilter qf = new ChainedInfiniFilter(num_entries_power, bits_per_entry, payload_size);
 			qf.set_expand_autonomously(true);
 			for (int i = num_entries_power; i <= num_cycles; i++ ) {
 				rejuvenation_experiment(qf, i, chained_IF_4, 2);
@@ -193,7 +193,7 @@ public class Experiment2 extends ExperimentsBase {
 		
 		String timeStamp = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(Calendar.getInstance().getTime());
 
-		LocalDate ld = java.time.LocalDate.now();
+		LocalDate ld = LocalDate.now();
 		String dir_name = "Exp2_" + bits_per_entry + "_bytes_" +  timeStamp.toString();
 	    Path path = Paths.get(dir_name);
 
