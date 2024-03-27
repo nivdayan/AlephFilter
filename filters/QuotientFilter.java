@@ -231,21 +231,13 @@ public class QuotientFilter extends Filter implements Cloneable {
     }
 
     void set_payload(long index, long[] payload) {
-        long startPosition;
-        if (Constants.getPayloadStrategy() == PayloadStrategy.NEIGHBORING)
-            startPosition = index * (bitPerEntry + payloadSize) + 3 + fingerprintLength;
-        else
-            startPosition = get_start_of_payload(index);
+        long startPosition = get_start_of_payload(index);
         for (int i = 0; i < payload.length; i++) {
             long element = payload[i];
             int elementSizeInBits = Long.SIZE;
             if (i == 0) {
                 elementSizeInBits = payloadSize % Long.SIZE;
             }
-            // System.out.println("--------------------------------------");
-            // System.out.println(payload.length);
-            // System.out.println(startPosition + " " + elementSizeInBits);
-            // System.out.println(filter.size());
             filter.setFromTo(startPosition, startPosition + elementSizeInBits, element);
             startPosition += elementSizeInBits;
         }
@@ -352,15 +344,6 @@ public class QuotientFilter extends Filter implements Cloneable {
         int numberOfElements = (int) Math.ceil((double) payloadSize / Long.SIZE);
         long[] payload = new long[numberOfElements];
         long startPosition = get_start_of_payload(index);
-        // System.out.println(startPosition + " fiuc " + bitPerEntry + " " + payloadSize + " " + fingerprintLength + " " + index);
-        // long offset = (Long.SIZE - payloadSize % Long.SIZE) % Long.SIZE;
-        // startPosition -= offset;
-        // long mask = ~0L;
-        // if (offset != 0) {
-        // 	mask = ~(-1L << (Long.SIZE - offset));
-        // }
-        // System.out.println(mask);
-        // System.out.println(startPosition);
         for (int i = 0; i < numberOfElements; i++) {
             long retrievedData;
             int offset;
@@ -417,10 +400,6 @@ public class QuotientFilter extends Filter implements Cloneable {
         System.out.println("bits/entry\t:" + num_bits / (double) num_entries);
         System.out.println("FP length:\t" + fingerprintLength);
         compute_statistics();
-        //System.out.println("num runs: \t\t" + num_runs);
-        //System.out.println("avg run length: \t" + avg_run_length);
-        //System.out.println("num clusters: \t\t" + num_clusters);
-        //System.out.println("avg cluster length: \t" + avg_cluster_length);
     }
 
     long get_start_of_slot(long index) {
